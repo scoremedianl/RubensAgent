@@ -70,6 +70,22 @@ struct BridgeClient {
     func saveMemory(_ name: String, content: String) async throws {
         _ = try await request("/memory/file", method: "PUT", body: ["name": name, "content": content])
     }
+    func runs() async throws -> [Run] {
+        try JSONDecoder().decode(RunsResponse.self, from: await request("/runs")).runs
+    }
+    func startRun(cwd: String, prompt: String, model: String, permissionMode: String) async throws -> Run {
+        var body: [String: Any] = ["cwd": cwd, "prompt": prompt, "permissionMode": permissionMode]
+        if !model.isEmpty { body["model"] = model }
+        return try JSONDecoder().decode(Run.self, from: await request("/runs", method: "POST", body: body))
+    }
+    func runLog(name: String) async throws -> RunLogResponse {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return try JSONDecoder().decode(RunLogResponse.self, from: await request("/runs/log?name=\(q)"))
+    }
+    func killRun(name: String) async throws {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        _ = try await request("/runs?name=\(q)", method: "DELETE")
+    }
     func liveSessions() async throws -> [SessionInfo] {
         try JSONDecoder().decode(LiveSessionsResponse.self, from: await request("/sessions")).sessions
     }

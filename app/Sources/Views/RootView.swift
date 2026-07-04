@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var showLoops = false
     @State private var showUsage = false
     @State private var showMemory = false
+    @State private var showRuns = false
 
     var body: some View {
         NavigationSplitView {
@@ -27,6 +28,7 @@ struct RootView: View {
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
+                    Button { showRuns = true } label: { Image(systemName: "terminal") }
                     Button { showUsage = true } label: { Image(systemName: "gauge.with.dots.needle.67percent") }
                     Button { showMemory = true } label: { Image(systemName: "brain") }
                     Button { showLoops = true } label: { Image(systemName: "clock.arrow.circlepath") }
@@ -51,6 +53,7 @@ struct RootView: View {
         .sheet(isPresented: $showLoops) { LoopsView() }
         .sheet(isPresented: $showUsage) { UsageView() }
         .sheet(isPresented: $showMemory) { MemoryView() }
+        .sheet(isPresented: $showRuns) { RunsView() }
     }
 
     @ViewBuilder private var detailView: some View {

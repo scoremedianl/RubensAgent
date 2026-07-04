@@ -14,6 +14,7 @@ import {
 } from "./sessions.mjs";
 import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs";
 import { branchInfo, pull, checkout } from "./git.mjs";
+import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -89,6 +90,27 @@ const server = http.createServer(async (req, res) => {
       const { cwd, branch } = await readBody(req);
       if (!cwd || !branch) return send(res, 400, { error: "cwd and branch required" });
       return send(res, 200, await checkout(cwd, branch));
+    }
+    if (req.method === "GET" && p === "/runs") {
+      return send(res, 200, { runs: await listRuns() });
+    }
+    if (req.method === "POST" && p === "/runs") {
+      return send(res, 200, await startRun(await readBody(req)));
+    }
+    if (req.method === "GET" && p === "/runs/log") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, readRun(name));
+    }
+    if (req.method === "POST" && p === "/runs/send") {
+      const { name, text } = await readBody(req);
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, await sendKeys(name, text || ""));
+    }
+    if (req.method === "DELETE" && p === "/runs") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, await killRun(name));
     }
     if (req.method === "GET" && p === "/usage") {
       return send(res, 200, getUsage());

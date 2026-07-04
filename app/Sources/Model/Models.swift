@@ -98,6 +98,23 @@ struct MemoryContentResponse: Codable { let name: String; let content: String }
 
 struct TranscriptResponse: Decodable { let messages: [StreamEvent] }
 
+// MARK: - Persistent tmux runs
+
+struct Run: Codable, Identifiable, Hashable {
+    var id: String { name }
+    let name: String
+    let cwd: String
+    let prompt: String
+    let model: String?
+    let permissionMode: String
+    let startedAt: String
+    let running: Bool
+    let attach: String
+    let logSize: Int?
+}
+struct RunsResponse: Codable { let runs: [Run] }
+struct RunLogResponse: Decodable { let name: String; let raw: String; let events: [StreamEvent] }
+
 // MARK: - stream-json event models (Claude Code output)
 
 struct StreamEvent: Decodable {
