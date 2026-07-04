@@ -1,0 +1,16 @@
+{
+  "name": "claude-mini-bridge",
+  "version": "0.1.0",
+  "description": "Bridge daemon that drives Claude Code sessions on this Mac for the native SwiftUI client (iOS + macOS).",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "node --watch src/server.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "node-cron": "^3.0.3"
+  }
+}
