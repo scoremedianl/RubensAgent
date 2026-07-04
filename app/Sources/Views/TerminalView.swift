@@ -1,18 +1,20 @@
 import SwiftUI
 
-// Live mirror of a Claude terminal running in tmux on the Mac. Polls the pane
-// content continuously, so re-entering always shows the true current state —
-// nothing to lose or replay. Types via send-keys.
+// Live mirror of a Claude terminal running in tmux on the Mac. State lives in
+// SessionManager (which polls the selected terminal centrally and caches the
+// output), so switching between terminals is instant and never gets stuck.
 struct TerminalView: View {
     @EnvironmentObject var app: AppState
     @EnvironmentObject var manager: SessionManager
     let term: TermSession
 
-    @State private var content = ""
     @State private var draft = ""
     @State private var copied = false
-    @State private var emptyPolls = 0
-    @State private var everLoaded = false
+    @State private var didScroll = false
+
+    private var content: String { manager.captures[term.name] ?? "" }
+    private var everLoaded: Bool { manager.loadedTerms.contains(term.name) }
+    private var isRunning: Bool { manager.term(term.name)?.running ?? true }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,27 +29,34 @@ struct TerminalView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Clipboard.copy(term.attach ?? ""); copied = true
-                } label: { Image(systemName: copied ? "checkmark" : "terminal") }
+                Button { Clipboard.copy(term.attach ?? ""); copied = true } label: {
+                    Image(systemName: copied ? "checkmark" : "terminal")
+                }
             }
             ToolbarItem(placement: .primaryAction) {
                 Button(role: .destructive) {
-                    Task { try? await app.client.killTerm(name: term.name); await manager.refreshTerminals(); manager.selection = nil }
+                    Task {
+                        try? await app.client.killTerm(name: term.name)
+                        await manager.refreshTerminals()
+                        manager.selection = nil
+                    }
                 } label: { Image(systemName: "xmark.circle") }
             }
         }
-        // Re-polls every time the view appears → always live on re-entry.
-        .task(id: term.id) { await pollLoop() }
+        // Capture immediately on open so the mirror shows at once.
+        .task(id: term.id) {
+            manager.startPolling()
+            await manager.captureNow(term.name)
+        }
     }
 
     @ViewBuilder private var screen: some View {
-        if !everLoaded && content.isEmpty && emptyPolls <= 4 {
-            loadingView
-        } else if content.isEmpty && emptyPolls > 4 {
+        if !content.isEmpty {
+            terminalScroll
+        } else if everLoaded || !isRunning {
             endedView
         } else {
-            terminalScroll
+            loadingView
         }
     }
 
@@ -89,7 +98,13 @@ struct TerminalView: View {
                     .id("bottom")
             }
             .background(Color(white: 0.08))
-            .onChange(of: content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+            // Scroll to the active area once; don't re-scroll on every poll
+            // (that made the view jump around, badly on iPhone).
+            .onChange(of: content) { _, new in
+                guard !didScroll, !new.isEmpty else { return }
+                proxy.scrollTo("bottom", anchor: .bottom)
+                didScroll = true
+            }
         }
     }
 
@@ -109,10 +124,12 @@ struct TerminalView: View {
     }
 
     private func keyButton(_ label: String, _ key: String) -> some View {
-        Button(label) { Task { try? await app.client.sendKey(name: term.name, key: key); await load() } }
-            .font(.caption.monospaced())
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+        Button(label) {
+            Task { try? await app.client.sendKey(name: term.name, key: key); await manager.captureNow(term.name) }
+        }
+        .font(.caption.monospaced())
+        .buttonStyle(.bordered)
+        .controlSize(.small)
     }
 
     private var inputBar: some View {
@@ -138,25 +155,9 @@ struct TerminalView: View {
     private func send() {
         let text = draft
         draft = ""
-        Task { try? await app.client.sendTerm(name: term.name, text: text); await load() }
-    }
-
-    private func pollLoop() async {
-        while !Task.isCancelled {
-            await load()
-            try? await Task.sleep(nanoseconds: 900_000_000)
-        }
-    }
-
-    private func load() async {
-        guard let c = try? await app.client.capture(name: term.name, lines: 80) else { return }
-        if c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            emptyPolls += 1
-            if everLoaded { content = c }   // was live, now empty → let status show
-        } else {
-            content = c
-            everLoaded = true
-            emptyPolls = 0
+        Task {
+            try? await app.client.sendTerm(name: term.name, text: text)
+            await manager.captureNow(term.name)
         }
     }
 }

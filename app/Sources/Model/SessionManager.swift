@@ -25,20 +25,56 @@ final class SessionManager: ObservableObject {
     @Published var terminals: [TermSession] = []
     @Published var selection: SidebarItem?
 
+    // Central terminal mirroring: the manager polls the selected terminal and
+    // caches its output, so switching is instant (cached content shows at once)
+    // and no per-view poll state can get stuck on "Starting Claude…".
+    @Published var captures: [String: String] = [:]
+    @Published var loadedTerms: Set<String> = []
+    private var pollTask: Task<Void, Never>?
+
+    func startPolling() {
+        guard pollTask == nil else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.pollSelected()
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+        }
+    }
+
+    private func pollSelected() async {
+        guard case .session(let name)? = selection else { return }
+        await captureNow(name)
+    }
+
+    // Capture one terminal immediately (used on selection for instant feel).
+    func captureNow(_ name: String) async {
+        // lines: 0 → just the visible screen (fixed-size mirror, no scroll jump).
+        guard let c = try? await Bridge.client.capture(name: name, lines: 0) else { return }
+        captures[name] = c
+        if !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { loadedTerms.insert(name) }
+    }
+
     // MARK: Terminal sessions (tmux-mirrored, the primary session model)
 
     func refreshTerminals() async {
         terminals = (try? await Bridge.client.terms()) ?? []
+        let names = Set(terminals.map(\.name))
+        // Drop cache for terminals that are gone.
+        captures = captures.filter { names.contains($0.key) }
+        loadedTerms = loadedTerms.filter { names.contains($0) }
         // Don't keep pointing at a terminal that no longer exists.
-        if case .session(let name) = selection, term(name) == nil {
+        if case .session(let name) = selection, !names.contains(name) {
             selection = nil
         }
+        startPolling()
     }
 
     func openTerminal(project: Project, model: String) async {
         guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model) else { return }
         await refreshTerminals()
         selection = .session(t.name)
+        startPolling()
     }
 
     func term(_ name: String) -> TermSession? { terminals.first { $0.name == name } }

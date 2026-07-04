@@ -89,10 +89,14 @@ export async function listTerms() {
   return terms;
 }
 
-// Live mirror of the current pane (visible screen + a little scrollback).
-export async function captureTerm(name, { lines = 60 } = {}) {
+// Live mirror of the current pane. We capture just the VISIBLE screen (no
+// scrollback) so the content is a fixed-size snapshot of the terminal — it
+// doesn't grow, which keeps the app's scroll position stable (no jumping).
+export async function captureTerm(name, { lines = 0 } = {}) {
   if (!valid(name)) throw new Error("invalid name");
-  const content = await tmux(["capture-pane", "-t", name, "-p", "-S", `-${lines}`]);
+  const args = ["capture-pane", "-t", name, "-p"];
+  if (lines > 0) args.push("-S", `-${lines}`);   // opt-in scrollback
+  const content = await tmux(args);
   return { name, content };
 }
 
