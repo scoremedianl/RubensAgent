@@ -4,6 +4,7 @@ import SwiftUI
 // as a live session.
 struct TranscriptView: View {
     @EnvironmentObject var app: AppState
+    @EnvironmentObject var manager: SessionManager
     let project: Project
     let sessionId: String
     let permissionMode: PermissionMode
@@ -23,9 +24,9 @@ struct TranscriptView: View {
         .navigationTitle("History")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                NavigationLink {
-                    SessionView(project: project, resumeId: sessionId,
-                                permissionMode: permissionMode, model: model)
+                Button {
+                    manager.open(project: project, resumeId: sessionId,
+                                 permissionMode: permissionMode, model: model)
                 } label: { Label("Continue", systemImage: "play.fill") }
             }
         }
@@ -36,29 +37,6 @@ struct TranscriptView: View {
         loading = true
         defer { loading = false }
         let events = (try? await app.client.transcript(cwd: project.path, id: sessionId)) ?? []
-        items = TranscriptView.itemize(events)
-    }
-
-    // Convert raw transcript events into chat bubbles.
-    static func itemize(_ events: [StreamEvent]) -> [ChatItem] {
-        var out: [ChatItem] = []
-        for e in events {
-            guard let content = e.message?.content else { continue }
-            let role = e.message?.role ?? e.type
-            for block in content {
-                switch block.type {
-                case "text":
-                    if let t = block.text, !t.isEmpty {
-                        out.append(ChatItem(kind: role == "user" ? .user : .assistant, text: t))
-                    }
-                case "tool_use":
-                    out.append(ChatItem(kind: .tool, text: "🔧 \(block.name ?? "tool")"))
-                case "tool_result":
-                    out.append(ChatItem(kind: .toolResult, text: "✓ result"))
-                default: break
-                }
-            }
-        }
-        return out
+        items = ChatItem.list(from: events)
     }
 }

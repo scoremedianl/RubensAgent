@@ -1,27 +1,15 @@
 import SwiftUI
 
 struct SessionView: View {
-    @EnvironmentObject var app: AppState
-    let project: Project
-    let resumeId: String?
-    let permissionMode: PermissionMode
-    let model: String
-
-    @StateObject private var socket: SessionSocket
+    let entry: SessionEntry
+    @ObservedObject var socket: SessionSocket
+    @EnvironmentObject var manager: SessionManager
     @State private var draft = ""
-    @State private var started = false
     @State private var showAutoContinue = false
 
-    init(project: Project, resumeId: String?, permissionMode: PermissionMode, model: String) {
-        self.project = project
-        self.resumeId = resumeId
-        self.permissionMode = permissionMode
-        self.model = model
-        // SessionSocket needs connection details up front; read from defaults.
-        let host = UserDefaults.standard.string(forKey: "bridge.host") ?? ""
-        let port = UserDefaults.standard.integer(forKey: "bridge.port")
-        let token = UserDefaults.standard.string(forKey: "bridge.token") ?? ""
-        _socket = StateObject(wrappedValue: SessionSocket(host: host, port: port == 0 ? 8787 : port, token: token))
+    init(entry: SessionEntry) {
+        self.entry = entry
+        _socket = ObservedObject(wrappedValue: entry.socket)
     }
 
     var body: some View {
@@ -30,23 +18,30 @@ struct SessionView: View {
             Divider()
             inputBar
         }
-        .navigationTitle(project.name)
+        .navigationTitle(entry.project.name)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItemGroup {
-                if socket.working { ProgressView().controlSize(.small) }
+                statusDot
                 Button { showAutoContinue = true } label: { Image(systemName: "repeat") }
-                Button(role: .destructive) { socket.stop() } label: { Image(systemName: "stop.circle") }
+                Button(role: .destructive) { manager.close(entry.id) } label: { Image(systemName: "xmark.circle") }
             }
-        }
-        .onAppear {
-            guard !started else { return }
-            started = true
-            socket.start(cwd: project.path, resumeId: resumeId,
-                         permissionMode: permissionMode.rawValue, model: model)
         }
         .sheet(isPresented: $showAutoContinue) {
             AutoContinueSheet { max, prompt, marker in
                 socket.autoContinue(maxIterations: max, prompt: prompt, stopMarker: marker)
+            }
+        }
+    }
+
+    private var statusDot: some View {
+        HStack(spacing: 4) {
+            if socket.working {
+                ProgressView().controlSize(.small)
+            } else {
+                Circle().fill(socket.connected ? .green : .secondary).frame(width: 8, height: 8)
             }
         }
     }
@@ -74,6 +69,7 @@ struct SessionView: View {
                 .lineLimit(1...5)
                 .onSubmit(send)
             Button(action: send) { Image(systemName: "arrow.up.circle.fill").font(.title2) }
+                .buttonStyle(.plain)
                 .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(8)

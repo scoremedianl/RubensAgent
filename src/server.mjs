@@ -13,6 +13,7 @@ import {
   listPersistedSessions, readTranscript, getUsage,
 } from "./sessions.mjs";
 import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs";
+import { branchInfo, pull, checkout } from "./git.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -73,6 +74,21 @@ const server = http.createServer(async (req, res) => {
       const id = url.searchParams.get("id");
       if (!cwd || !id) return send(res, 400, { error: "cwd and id required" });
       return send(res, 200, { messages: await readTranscript(cwd, id) });
+    }
+    if (req.method === "GET" && p === "/projects/git/branches") {
+      const cwd = url.searchParams.get("cwd");
+      if (!cwd) return send(res, 400, { error: "cwd required" });
+      return send(res, 200, await branchInfo(cwd));
+    }
+    if (req.method === "POST" && p === "/projects/git/pull") {
+      const { cwd } = await readBody(req);
+      if (!cwd) return send(res, 400, { error: "cwd required" });
+      return send(res, 200, await pull(cwd));
+    }
+    if (req.method === "POST" && p === "/projects/git/checkout") {
+      const { cwd, branch } = await readBody(req);
+      if (!cwd || !branch) return send(res, 400, { error: "cwd and branch required" });
+      return send(res, 200, await checkout(cwd, branch));
     }
     if (req.method === "GET" && p === "/usage") {
       return send(res, 200, getUsage());

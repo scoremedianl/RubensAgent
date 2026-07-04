@@ -30,6 +30,19 @@ final class SessionSocket: ObservableObject {
         sendJSON(msg)
     }
 
+    // Re-join a session that is still running on the daemon: load the
+    // conversation so far, then subscribe to live events.
+    func attach(cwd: String, sessionId: String) {
+        self.sessionId = sessionId
+        connect()
+        Task {
+            if let events = try? await Bridge.client.transcript(cwd: cwd, id: sessionId) {
+                items = ChatItem.list(from: events)
+            }
+            sendJSON(["type": "attach", "id": sessionId])
+        }
+    }
+
     func sendText(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

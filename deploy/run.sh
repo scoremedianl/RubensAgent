@@ -7,5 +7,7 @@ source "$HOME/.zprofile" 2>/dev/null
 # kept out of the repo. Makes the daemon work headless, independent of the
 # GUI login keychain.
 [ -f "$HOME/.claude-bridge/env" ] && source "$HOME/.claude-bridge/env"
+# Force the subscription login (OAuth token / keychain), never API-key billing.
+unset ANTHROPIC_API_KEY
 cd "$(dirname "$0")/.." || exit 1
 exec node src/server.mjs

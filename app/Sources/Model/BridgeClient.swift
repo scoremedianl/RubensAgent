@@ -70,6 +70,19 @@ struct BridgeClient {
     func saveMemory(_ name: String, content: String) async throws {
         _ = try await request("/memory/file", method: "PUT", body: ["name": name, "content": content])
     }
+    func liveSessions() async throws -> [SessionInfo] {
+        try JSONDecoder().decode(LiveSessionsResponse.self, from: await request("/sessions")).sessions
+    }
+    func branches(cwd: String) async throws -> BranchInfo {
+        let q = cwd.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cwd
+        return try JSONDecoder().decode(BranchInfo.self, from: await request("/projects/git/branches?cwd=\(q)"))
+    }
+    func gitPull(cwd: String) async throws {
+        _ = try await request("/projects/git/pull", method: "POST", body: ["cwd": cwd])
+    }
+    func gitCheckout(cwd: String, branch: String) async throws {
+        _ = try await request("/projects/git/checkout", method: "POST", body: ["cwd": cwd, "branch": branch])
+    }
     func transcript(cwd: String, id: String) async throws -> [StreamEvent] {
         let qc = cwd.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cwd
         let qi = id.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? id

@@ -4,9 +4,24 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { config } from "./config.mjs";
+import { config, claudeProjectsDir, transcriptSlug } from "./config.mjs";
 
 const pexecFile = promisify(execFile);
+
+// Most recent Claude session activity for a project dir, from its transcript
+// files' mtimes. Used to sort projects by "last chat". null if never used.
+function lastActivity(cwd) {
+  const dir = path.join(claudeProjectsDir, transcriptSlug(cwd));
+  let newest = 0;
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith(".jsonl")) continue;
+      const m = fs.statSync(path.join(dir, f)).mtimeMs;
+      if (m > newest) newest = m;
+    }
+  } catch { /* no transcripts yet */ }
+  return newest ? new Date(newest).toISOString() : null;
+}
 
 async function git(args, cwd) {
   const { stdout } = await pexecFile("git", args, { cwd, timeout: 20000 });
@@ -27,7 +42,7 @@ export async function listProjects() {
     if (!e.isDirectory()) continue;
     const dir = path.join(config.projectsDir, e.name);
     if (!fs.existsSync(path.join(dir, ".git"))) continue;
-    const p = { name: e.name, path: dir };
+    const p = { name: e.name, path: dir, lastActivity: lastActivity(dir) };
     try {
       p.branch = await git(["rev-parse", "--abbrev-ref", "HEAD"], dir);
       p.remote = await git(["remote", "get-url", "origin"], dir).catch(() => null);
@@ -40,7 +55,13 @@ export async function listProjects() {
     }
     projects.push(p);
   }
-  projects.sort((a, b) => a.name.localeCompare(b.name));
+  // Sort by last chat activity (most recent first), then name.
+  projects.sort((a, b) => {
+    if (a.lastActivity && b.lastActivity) return b.lastActivity.localeCompare(a.lastActivity);
+    if (a.lastActivity) return -1;
+    if (b.lastActivity) return 1;
+    return a.name.localeCompare(b.name);
+  });
   return projects;
 }
 

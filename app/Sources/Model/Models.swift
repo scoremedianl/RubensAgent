@@ -6,12 +6,25 @@ struct Project: Codable, Identifiable, Hashable {
     var id: String { path }
     let name: String
     let path: String
-    var branch: String?
-    var remote: String?
-    var lastCommit: String?
+    var branch: String? = nil
+    var remote: String? = nil
+    var lastCommit: String? = nil
+    var lastActivity: String? = nil
 }
 
 struct ProjectsResponse: Codable { let projects: [Project] }
+
+struct SessionInfo: Codable, Identifiable, Hashable {
+    let id: String
+    let project: String?
+    let cwd: String
+    let permissionMode: String?
+    let startedAt: String?
+    let alive: Bool
+}
+struct LiveSessionsResponse: Codable { let sessions: [SessionInfo] }
+
+struct BranchInfo: Codable { let current: String; let branches: [String] }
 
 struct AvailableRepo: Codable, Identifiable, Hashable {
     var id: String { name }
@@ -124,4 +137,27 @@ struct ChatItem: Identifiable, Hashable {
     let id = UUID()
     var kind: Kind
     var text: String
+
+    // Convert raw transcript / stream events into chat bubbles.
+    static func list(from events: [StreamEvent]) -> [ChatItem] {
+        var out: [ChatItem] = []
+        for e in events {
+            guard let content = e.message?.content else { continue }
+            let role = e.message?.role ?? e.type
+            for block in content {
+                switch block.type {
+                case "text":
+                    if let t = block.text, !t.isEmpty {
+                        out.append(ChatItem(kind: role == "user" ? .user : .assistant, text: t))
+                    }
+                case "tool_use":
+                    out.append(ChatItem(kind: .tool, text: "🔧 \(block.name ?? "tool")"))
+                case "tool_result":
+                    out.append(ChatItem(kind: .toolResult, text: "✓ result"))
+                default: break
+                }
+            }
+        }
+        return out
+    }
 }
