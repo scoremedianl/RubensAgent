@@ -63,16 +63,23 @@ struct SessionView: View {
     }
 
     private var inputBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             TextField("Message Claude…", text: $draft, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
                 .lineLimit(1...5)
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .background(Theme.assistantBubble, in: Capsule())
                 .onSubmit(send)
-            Button(action: send) { Image(systemName: "arrow.up.circle.fill").font(.title2) }
-                .buttonStyle(.plain)
-                .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(action: send) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : Theme.accent)
+            }
+            .buttonStyle(.plain)
+            .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .padding(8)
+        .padding(12)
+        .background(.bar)
     }
 
     private func send() {
@@ -86,30 +93,51 @@ struct ChatBubble: View {
     var body: some View {
         switch item.kind {
         case .user:
-            bubble(item.text, bg: Color.accentColor.opacity(0.15), align: .trailing)
+            HStack {
+                Spacer(minLength: 48)
+                Text(item.text)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Theme.userBubble, in: RoundedRectangle(cornerRadius: Theme.bubbleCorner))
+            }
         case .assistant:
-            bubble(item.text, bg: Color.gray.opacity(0.12), align: .leading)
+            HStack(alignment: .top, spacing: 10) {
+                avatar
+                Text(item.text)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Theme.assistantBubble, in: RoundedRectangle(cornerRadius: Theme.bubbleCorner))
+                Spacer(minLength: 24)
+            }
         case .tool:
-            Text(item.text).font(.caption.monospaced()).foregroundStyle(.blue)
+            HStack(spacing: 6) {
+                avatar.opacity(0)
+                Label(item.text.replacingOccurrences(of: "🔧 ", with: ""), systemImage: "wrench.and.screwdriver.fill")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.accent)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Theme.accentSoft, in: Capsule())
+                Spacer(minLength: 24)
+            }
         case .toolResult:
-            Text(item.text).font(.caption.monospaced()).foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                avatar.opacity(0)
+                Text(item.text).font(.caption.monospaced()).foregroundStyle(.secondary)
+                Spacer(minLength: 24)
+            }
         case .status:
-            Text(item.text).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center)
+            Text(item.text).font(.caption).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         case .error:
-            Text(item.text).font(.callout).foregroundStyle(.red)
+            Label(item.text, systemImage: "exclamationmark.triangle.fill")
+                .font(.callout).foregroundStyle(.red)
         }
     }
 
-    private func bubble(_ text: String, bg: Color, align: HorizontalAlignment) -> some View {
-        HStack {
-            if align == .trailing { Spacer(minLength: 40) }
-            Text(text)
-                .textSelection(.enabled)
-                .padding(10)
-                .background(bg, in: RoundedRectangle(cornerRadius: 12))
-                .frame(maxWidth: .infinity, alignment: align == .trailing ? .trailing : .leading)
-            if align == .leading { Spacer(minLength: 40) }
-        }
+    private var avatar: some View {
+        Circle().fill(Theme.accent)
+            .frame(width: 22, height: 22)
+            .overlay(Image(systemName: "sparkle").font(.caption2).foregroundStyle(.white))
     }
 }
 

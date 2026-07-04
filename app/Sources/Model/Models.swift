@@ -115,6 +115,22 @@ struct Run: Codable, Identifiable, Hashable {
 struct RunsResponse: Codable { let runs: [Run] }
 struct RunLogResponse: Decodable { let name: String; let raw: String; let events: [StreamEvent] }
 
+// MARK: - Interactive terminal sessions (tmux-mirrored)
+
+struct TermSession: Codable, Identifiable, Hashable {
+    var id: String { name }
+    let name: String
+    let cwd: String
+    let model: String?
+    let startedAt: String
+    var running: Bool = true
+    let attach: String?
+
+    var projectName: String { (cwd as NSString).lastPathComponent }
+}
+struct TermListResponse: Codable { let terms: [TermSession] }
+struct TermCapture: Codable { let name: String; let content: String }
+
 // MARK: - stream-json event models (Claude Code output)
 
 struct StreamEvent: Decodable {

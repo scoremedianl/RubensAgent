@@ -10,10 +10,17 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $manager.selection) {
-                if !manager.entries.isEmpty {
+                if !manager.terminals.isEmpty {
                     Section("Running") {
-                        ForEach(manager.entries) { entry in
-                            SessionRow(entry: entry).tag(SidebarItem.session(entry.id))
+                        ForEach(manager.terminals) { term in
+                            HStack(spacing: 8) {
+                                Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(term.projectName).font(.body)
+                                    Text("terminal").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .tag(SidebarItem.session(term.name))
                         }
                     }
                 }
@@ -64,8 +71,8 @@ struct RootView: View {
 
     @ViewBuilder private var detailView: some View {
         switch manager.selection {
-        case .session(let id):
-            if let e = manager.entry(id) { SessionView(entry: e) }
+        case .session(let name):
+            if let t = manager.term(name) { TerminalView(term: t) }
             else { placeholder }
         case .project(let path):
             if let p = app.projects.first(where: { $0.path == path }) { ProjectDetailView(project: p) }
@@ -83,7 +90,7 @@ struct RootView: View {
         await app.checkHealth()
         if app.reachable {
             await app.loadProjects()
-            await manager.refreshLive(projects: app.projects)
+            await manager.refreshTerminals()
         } else if app.token.isEmpty {
             sheet = .settings
         }

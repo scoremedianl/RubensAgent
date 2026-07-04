@@ -22,7 +22,22 @@ struct SessionEntry: Identifiable {
 @MainActor
 final class SessionManager: ObservableObject {
     @Published var entries: [SessionEntry] = []
+    @Published var terminals: [TermSession] = []
     @Published var selection: SidebarItem?
+
+    // MARK: Terminal sessions (tmux-mirrored, the primary session model)
+
+    func refreshTerminals() async {
+        terminals = (try? await Bridge.client.terms()) ?? []
+    }
+
+    func openTerminal(project: Project, model: String) async {
+        guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model) else { return }
+        await refreshTerminals()
+        selection = .session(t.name)
+    }
+
+    func term(_ name: String) -> TermSession? { terminals.first { $0.name == name } }
 
     // Start a brand-new session and select it.
     @discardableResult

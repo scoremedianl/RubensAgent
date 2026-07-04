@@ -25,9 +25,8 @@ struct TranscriptView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    manager.open(project: project, resumeId: sessionId,
-                                 permissionMode: permissionMode, model: model)
-                } label: { Label("Continue", systemImage: "play.fill") }
+                    Task { await manager.openTerminal(project: project, model: model) }
+                } label: { Label("Open terminal", systemImage: "terminal") }
             }
         }
         .task { await load() }

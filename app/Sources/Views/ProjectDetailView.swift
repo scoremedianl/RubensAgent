@@ -15,6 +15,7 @@ struct ProjectDetailView: View {
     @State private var branchInfo: BranchInfo?
     @State private var gitBusy = false
     @State private var gitMessage: String?
+    @State private var gitForce = false
 
     // Claude Code always runs full-auto.
     private let permissionMode: PermissionMode = .bypass
@@ -29,7 +30,7 @@ struct ProjectDetailView: View {
                 Label("Full auto — Claude runs tools without asking", systemImage: "bolt.fill")
                     .font(.caption).foregroundStyle(.secondary)
                 Button {
-                    manager.open(project: project, permissionMode: permissionMode, model: model)
+                    Task { await manager.openTerminal(project: project, model: model) }
                 } label: {
                     Label("Start session", systemImage: "play.circle.fill")
                 }
@@ -99,6 +100,11 @@ struct ProjectDetailView: View {
                     }
                 }
             }
+            Toggle(isOn: $gitForce) {
+                Label("Force switch (discard local changes)", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+            }
+            .tint(.orange)
             if let m = gitMessage {
                 Text(m).font(.caption).foregroundStyle(.secondary).lineLimit(3)
             }
@@ -120,8 +126,8 @@ struct ProjectDetailView: View {
     private func switchBranch(_ b: String) async {
         gitBusy = true; defer { gitBusy = false }
         do {
-            try await app.client.gitCheckout(cwd: project.path, branch: b)
-            gitMessage = "Switched to \(b)."
+            try await app.client.gitCheckout(cwd: project.path, branch: b, hard: gitForce)
+            gitMessage = gitForce ? "Force-switched to \(b) (local changes discarded)." : "Switched to \(b)."
             await loadBranches()
         } catch { gitMessage = error.localizedDescription }
     }

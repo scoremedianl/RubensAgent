@@ -15,6 +15,7 @@ import {
 import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs";
 import { branchInfo, pull, checkout } from "./git.mjs";
 import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
+import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "./term.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -87,9 +88,36 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, await pull(cwd));
     }
     if (req.method === "POST" && p === "/projects/git/checkout") {
-      const { cwd, branch } = await readBody(req);
+      const { cwd, branch, hard } = await readBody(req);
       if (!cwd || !branch) return send(res, 400, { error: "cwd and branch required" });
-      return send(res, 200, await checkout(cwd, branch));
+      return send(res, 200, await checkout(cwd, branch, { hard: hard === true }));
+    }
+    if (req.method === "POST" && p === "/term/start") {
+      return send(res, 200, await startTerm(await readBody(req)));
+    }
+    if (req.method === "GET" && p === "/term/list") {
+      return send(res, 200, { terms: await listTerms() });
+    }
+    if (req.method === "GET" && p === "/term/capture") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      const lines = Number(url.searchParams.get("lines") || 60);
+      return send(res, 200, await captureTerm(name, { lines }));
+    }
+    if (req.method === "POST" && p === "/term/send") {
+      const { name, text } = await readBody(req);
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, await sendTerm(name, text || ""));
+    }
+    if (req.method === "POST" && p === "/term/key") {
+      const { name, key } = await readBody(req);
+      if (!name || !key) return send(res, 400, { error: "name and key required" });
+      return send(res, 200, await sendKey(name, key));
+    }
+    if (req.method === "DELETE" && p === "/term") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, await killTerm(name));
     }
     if (req.method === "GET" && p === "/runs") {
       return send(res, 200, { runs: await listRuns() });

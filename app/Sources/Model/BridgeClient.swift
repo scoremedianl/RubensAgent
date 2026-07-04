@@ -86,6 +86,29 @@ struct BridgeClient {
         let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         _ = try await request("/runs?name=\(q)", method: "DELETE")
     }
+    // Interactive terminal sessions (tmux-mirrored).
+    func startTerm(cwd: String, model: String) async throws -> TermSession {
+        var body: [String: Any] = ["cwd": cwd]
+        if !model.isEmpty { body["model"] = model }
+        return try JSONDecoder().decode(TermSession.self, from: await request("/term/start", method: "POST", body: body))
+    }
+    func terms() async throws -> [TermSession] {
+        try JSONDecoder().decode(TermListResponse.self, from: await request("/term/list")).terms
+    }
+    func capture(name: String, lines: Int = 60) async throws -> String {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return try JSONDecoder().decode(TermCapture.self, from: await request("/term/capture?name=\(q)&lines=\(lines)")).content
+    }
+    func sendTerm(name: String, text: String) async throws {
+        _ = try await request("/term/send", method: "POST", body: ["name": name, "text": text])
+    }
+    func sendKey(name: String, key: String) async throws {
+        _ = try await request("/term/key", method: "POST", body: ["name": name, "key": key])
+    }
+    func killTerm(name: String) async throws {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        _ = try await request("/term?name=\(q)", method: "DELETE")
+    }
     func liveSessions() async throws -> [SessionInfo] {
         try JSONDecoder().decode(LiveSessionsResponse.self, from: await request("/sessions")).sessions
     }
@@ -96,8 +119,9 @@ struct BridgeClient {
     func gitPull(cwd: String) async throws {
         _ = try await request("/projects/git/pull", method: "POST", body: ["cwd": cwd])
     }
-    func gitCheckout(cwd: String, branch: String) async throws {
-        _ = try await request("/projects/git/checkout", method: "POST", body: ["cwd": cwd, "branch": branch])
+    func gitCheckout(cwd: String, branch: String, hard: Bool = false) async throws {
+        _ = try await request("/projects/git/checkout", method: "POST",
+                              body: ["cwd": cwd, "branch": branch, "hard": hard])
     }
     func transcript(cwd: String, id: String) async throws -> [StreamEvent] {
         let qc = cwd.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cwd
