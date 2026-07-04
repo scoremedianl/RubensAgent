@@ -61,14 +61,27 @@ async function liveNames() {
   return new Set(out.split("\n").map((s) => s.trim()).filter(Boolean));
 }
 
+function cleanupFiles(base) {
+  for (const ext of [".json", ".sh"]) {
+    try { fs.rmSync(path.join(TERM_DIR, `${base}${ext}`)); } catch { /* ignore */ }
+  }
+}
+
 export async function listTerms() {
   const live = await liveNames();
   const terms = [];
   for (const f of fs.readdirSync(TERM_DIR)) {
     if (!f.endsWith(".json")) continue;
+    const base = f.replace(/\.json$/, "");
     try {
       const m = JSON.parse(fs.readFileSync(path.join(TERM_DIR, f), "utf8"));
-      m.running = live.has(m.name);
+      if (!live.has(m.name)) {
+        // tmux session is gone — prune its files so it stops lingering as a
+        // dead "connecting" entry, and skip it.
+        cleanupFiles(base);
+        continue;
+      }
+      m.running = true;
       terms.push(m);
     } catch { /* skip */ }
   }
@@ -102,5 +115,6 @@ export async function sendKey(name, key) {
 export async function killTerm(name) {
   if (!valid(name)) throw new Error("invalid name");
   await tmux(["kill-session", "-t", name]);
+  cleanupFiles(name);   // remove metadata so it doesn't linger in the list
   return { killed: name };
 }

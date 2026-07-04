@@ -11,6 +11,8 @@ struct TerminalView: View {
     @State private var content = ""
     @State private var draft = ""
     @State private var copied = false
+    @State private var emptyPolls = 0
+    @State private var everLoaded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,19 +41,34 @@ struct TerminalView: View {
         .task(id: term.id) { await pollLoop() }
     }
 
-    private var screen: some View {
-        ScrollViewReader { proxy in
-            ScrollView([.horizontal, .vertical]) {
-                Text(content.isEmpty ? "connecting…" : content)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color(white: 0.92))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .id("bottom")
+    @ViewBuilder private var screen: some View {
+        if content.isEmpty && emptyPolls > 3 {
+            // No pane output after several polls → the tmux session is gone.
+            ContentUnavailableView {
+                Label("Session ended", systemImage: "xmark.circle")
+            } description: {
+                Text("This terminal is no longer running on the Mac.")
+            } actions: {
+                Button("Remove") {
+                    Task { try? await app.client.killTerm(name: term.name); await manager.refreshTerminals(); manager.selection = nil }
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(white: 0.08))
-            .onChange(of: content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+        } else {
+            ScrollViewReader { proxy in
+                ScrollView([.horizontal, .vertical]) {
+                    Text(content.isEmpty ? "connecting…" : content)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color(white: 0.92))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .id("bottom")
+                }
+                .background(Color(white: 0.08))
+                .onChange(of: content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+            }
         }
     }
 
@@ -111,6 +128,14 @@ struct TerminalView: View {
     }
 
     private func load() async {
-        if let c = try? await app.client.capture(name: term.name, lines: 80) { content = c }
+        guard let c = try? await app.client.capture(name: term.name, lines: 80) else { return }
+        if c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            emptyPolls += 1
+            if everLoaded { content = c }   // was live, now empty → let status show
+        } else {
+            content = c
+            everLoaded = true
+            emptyPolls = 0
+        }
     }
 }

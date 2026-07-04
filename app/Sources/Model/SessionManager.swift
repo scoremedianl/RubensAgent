@@ -29,6 +29,10 @@ final class SessionManager: ObservableObject {
 
     func refreshTerminals() async {
         terminals = (try? await Bridge.client.terms()) ?? []
+        // Don't keep pointing at a terminal that no longer exists.
+        if case .session(let name) = selection, term(name) == nil {
+            selection = nil
+        }
     }
 
     func openTerminal(project: Project, model: String) async {
