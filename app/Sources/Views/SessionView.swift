@@ -4,17 +4,19 @@ struct SessionView: View {
     @EnvironmentObject var app: AppState
     let project: Project
     let resumeId: String?
-    let autoApprove: Bool
+    let permissionMode: PermissionMode
+    let model: String
 
     @StateObject private var socket: SessionSocket
     @State private var draft = ""
     @State private var started = false
     @State private var showAutoContinue = false
 
-    init(project: Project, resumeId: String?, autoApprove: Bool) {
+    init(project: Project, resumeId: String?, permissionMode: PermissionMode, model: String) {
         self.project = project
         self.resumeId = resumeId
-        self.autoApprove = autoApprove
+        self.permissionMode = permissionMode
+        self.model = model
         // SessionSocket needs connection details up front; read from defaults.
         let host = UserDefaults.standard.string(forKey: "bridge.host") ?? ""
         let port = UserDefaults.standard.integer(forKey: "bridge.port")
@@ -39,7 +41,8 @@ struct SessionView: View {
         .onAppear {
             guard !started else { return }
             started = true
-            socket.start(cwd: project.path, resumeId: resumeId, autoApprove: autoApprove)
+            socket.start(cwd: project.path, resumeId: resumeId,
+                         permissionMode: permissionMode.rawValue, model: model)
         }
         .sheet(isPresented: $showAutoContinue) {
             AutoContinueSheet { max, prompt, marker in

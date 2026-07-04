@@ -5,6 +5,8 @@ struct RootView: View {
     @State private var selection: Project?
     @State private var showSettings = false
     @State private var showLoops = false
+    @State private var showUsage = false
+    @State private var showMemory = false
 
     var body: some View {
         NavigationSplitView {
@@ -25,6 +27,8 @@ struct RootView: View {
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
+                    Button { showUsage = true } label: { Image(systemName: "gauge.with.dots.needle.67percent") }
+                    Button { showMemory = true } label: { Image(systemName: "brain") }
                     Button { showLoops = true } label: { Image(systemName: "clock.arrow.circlepath") }
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     Button { Task { await refresh() } } label: { Image(systemName: "arrow.clockwise") }
@@ -49,6 +53,8 @@ struct RootView: View {
         .task { await refresh() }
         .sheet(isPresented: $showSettings) { ConnectionView() }
         .sheet(isPresented: $showLoops) { LoopsView() }
+        .sheet(isPresented: $showUsage) { UsageView() }
+        .sheet(isPresented: $showMemory) { MemoryView() }
     }
 
     private func refresh() async {

@@ -20,10 +20,12 @@ final class SessionSocket: ObservableObject {
     }
 
     // Start a fresh session in `cwd`, or resume `resumeId` if given.
-    func start(cwd: String, resumeId: String? = nil, autoApprove: Bool = true) {
+    func start(cwd: String, resumeId: String? = nil,
+               permissionMode: String = "bypassPermissions", model: String = "") {
         connect()
-        var msg: [String: Any] = ["type": "start", "cwd": cwd, "autoApprove": autoApprove]
+        var msg: [String: Any] = ["type": "start", "cwd": cwd, "permissionMode": permissionMode]
         if let resumeId { msg["resumeId"] = resumeId }
+        if !model.isEmpty { msg["model"] = model }
         working = true
         sendJSON(msg)
     }

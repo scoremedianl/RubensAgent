@@ -1,26 +1,38 @@
 import SwiftUI
 
-// Landing page for a chosen project: start a new session or resume history.
+// Landing page for a chosen project: start a new session (with model +
+// permission mode) or open past sessions read-only.
 struct ProjectDetailView: View {
     @EnvironmentObject var app: AppState
     let project: Project
 
-    @State private var autoApprove = true
+    @AppStorage("session.permissionMode") private var permissionModeRaw = PermissionMode.bypass.rawValue
+    @AppStorage("session.model") private var model = ""
     @State private var history: [PersistedSession] = []
     @State private var loading = false
+
+    private var permissionMode: PermissionMode {
+        PermissionMode(rawValue: permissionModeRaw) ?? .bypass
+    }
 
     var body: some View {
         List {
             Section("Project") {
                 LabeledContent("Path", value: project.path)
                 if let c = project.lastCommit { LabeledContent("Last commit", value: c) }
-                if let r = project.remote { LabeledContent("Remote", value: r) }
             }
 
             Section("New session") {
-                Toggle("Full auto (run tools without asking)", isOn: $autoApprove)
+                Picker("Model", selection: $model) {
+                    ForEach(modelOptions) { m in Text(m.label).tag(m.id) }
+                }
+                Picker("Permissions", selection: $permissionModeRaw) {
+                    ForEach(PermissionMode.allCases) { m in Text(m.label).tag(m.rawValue) }
+                }
+                Text(permissionMode.detail).font(.caption).foregroundStyle(.secondary)
                 NavigationLink {
-                    SessionView(project: project, resumeId: nil, autoApprove: autoApprove)
+                    SessionView(project: project, resumeId: nil,
+                                permissionMode: permissionMode, model: model)
                 } label: {
                     Label("Start session", systemImage: "play.circle.fill")
                 }
@@ -33,7 +45,8 @@ struct ProjectDetailView: View {
                 }
                 ForEach(history) { s in
                     NavigationLink {
-                        SessionView(project: project, resumeId: s.id, autoApprove: autoApprove)
+                        TranscriptView(project: project, sessionId: s.id,
+                                       permissionMode: permissionMode, model: model)
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(s.id.prefix(8) + "…").font(.body.monospaced())

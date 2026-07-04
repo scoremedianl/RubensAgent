@@ -50,6 +50,41 @@ struct Loop: Codable, Identifiable, Hashable {
 }
 struct LoopsResponse: Codable { let loops: [Loop] }
 
+// MARK: - Usage / limits
+
+struct RateLimitInfo: Codable, Hashable {
+    let status: String?
+    let resetsAt: Double?
+    let rateLimitType: String?
+    let isUsingOverage: Bool?
+    let overageStatus: String?
+}
+struct RateLimitEnvelope: Codable, Hashable {
+    let rate_limit_info: RateLimitInfo?
+}
+struct Usage: Codable {
+    let totalCostUsd: Double
+    let turns: Int
+    let inputTokens: Int
+    let outputTokens: Int
+    let cacheReadTokens: Int
+    let lastRateLimit: RateLimitEnvelope?
+    let updatedAt: String?
+}
+
+// MARK: - Memory files
+
+struct MemoryFile: Codable, Identifiable, Hashable {
+    var id: String { name }
+    let name: String
+    let root: Bool
+    let sizeBytes: Int
+}
+struct MemoryFilesResponse: Codable { let files: [MemoryFile] }
+struct MemoryContentResponse: Codable { let name: String; let content: String }
+
+struct TranscriptResponse: Decodable { let messages: [StreamEvent] }
+
 // MARK: - stream-json event models (Claude Code output)
 
 struct StreamEvent: Decodable {

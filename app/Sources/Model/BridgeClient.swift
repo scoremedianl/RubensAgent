@@ -56,6 +56,26 @@ struct BridgeClient {
     func loops() async throws -> [Loop] {
         try JSONDecoder().decode(LoopsResponse.self, from: await request("/loops")).loops
     }
+    func usage() async throws -> Usage {
+        try JSONDecoder().decode(Usage.self, from: await request("/usage"))
+    }
+    func memoryFiles() async throws -> [MemoryFile] {
+        try JSONDecoder().decode(MemoryFilesResponse.self, from: await request("/memory")).files
+    }
+    func memoryContent(_ name: String) async throws -> String {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return try JSONDecoder().decode(MemoryContentResponse.self,
+                                        from: await request("/memory/file?name=\(q)")).content
+    }
+    func saveMemory(_ name: String, content: String) async throws {
+        _ = try await request("/memory/file", method: "PUT", body: ["name": name, "content": content])
+    }
+    func transcript(cwd: String, id: String) async throws -> [StreamEvent] {
+        let qc = cwd.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cwd
+        let qi = id.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? id
+        return try JSONDecoder().decode(TranscriptResponse.self,
+                                        from: await request("/transcript?cwd=\(qc)&id=\(qi)")).messages
+    }
     func addLoop(cwd: String, schedule: String, prompt: String, project: String?, autoApprove: Bool) async throws {
         var body: [String: Any] = ["type": "cron", "cwd": cwd, "schedule": schedule,
                                    "prompt": prompt, "autoApprove": autoApprove]
