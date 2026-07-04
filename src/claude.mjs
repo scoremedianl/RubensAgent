@@ -15,14 +15,17 @@ export class ClaudeSession extends EventEmitter {
    * @param {object} opts
    * @param {string} opts.cwd          project directory to run in
    * @param {string} [opts.resumeId]   existing Claude session id to continue
-   * @param {boolean} [opts.autoApprove=true]  run tools without prompting (full auto)
+   * @param {string} [opts.permissionMode]  one of default | acceptEdits |
+   *                 bypassPermissions | plan. Falls back from autoApprove.
+   * @param {boolean} [opts.autoApprove]  legacy: true → bypassPermissions
    * @param {string} [opts.model]      optional model override
    */
-  constructor({ cwd, resumeId = null, autoApprove = true, model = null }) {
+  constructor({ cwd, resumeId = null, permissionMode = null, autoApprove = true, model = null }) {
     super();
     this.cwd = cwd;
     this.resumeId = resumeId;
-    this.autoApprove = autoApprove;
+    this.permissionMode = permissionMode
+      || (autoApprove ? "bypassPermissions" : "default");
     this.model = model;
     this.sessionId = resumeId || null;
     this.proc = null;
@@ -36,7 +39,7 @@ export class ClaudeSession extends EventEmitter {
       "--input-format", "stream-json",
       "--output-format", "stream-json",
       "--verbose",
-      "--permission-mode", this.autoApprove ? "bypassPermissions" : "default",
+      "--permission-mode", this.permissionMode,
     ];
     if (this.resumeId) args.push("--resume", this.resumeId);
     if (this.model) args.push("--model", this.model);

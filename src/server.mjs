@@ -10,8 +10,9 @@ import { isAuthorized } from "./auth.mjs";
 import { listProjects, cloneRepo, listAvailableRepos } from "./projects.mjs";
 import {
   startSession, getSession, listLiveSessions,
-  listPersistedSessions, readTranscript,
+  listPersistedSessions, readTranscript, getUsage,
 } from "./sessions.mjs";
+import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -73,6 +74,27 @@ const server = http.createServer(async (req, res) => {
       if (!cwd || !id) return send(res, 400, { error: "cwd and id required" });
       return send(res, 200, { messages: await readTranscript(cwd, id) });
     }
+    if (req.method === "GET" && p === "/usage") {
+      return send(res, 200, getUsage());
+    }
+    if (req.method === "GET" && p === "/memory") {
+      return send(res, 200, { files: listMemory() });
+    }
+    if (req.method === "GET" && p === "/memory/file") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, { name, content: readMemory(name) });
+    }
+    if (req.method === "PUT" && p === "/memory/file") {
+      const { name, content } = await readBody(req);
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, writeMemory(name, content));
+    }
+    if (req.method === "DELETE" && p === "/memory/file") {
+      const name = url.searchParams.get("name");
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, deleteMemory(name));
+    }
     if (req.method === "GET" && p === "/loops") {
       return send(res, 200, { loops: listLoops() });
     }
@@ -129,6 +151,7 @@ wss.on("connection", (ws) => {
             project: msg.project || null,
             cwd: msg.cwd,
             resumeId: msg.resumeId || null,
+            permissionMode: msg.permissionMode || null,
             autoApprove: msg.autoApprove !== false,
             model: msg.model || null,
           });

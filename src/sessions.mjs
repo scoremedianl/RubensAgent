@@ -6,6 +6,37 @@ import path from "node:path";
 import readline from "node:readline";
 import { ClaudeSession } from "./claude.mjs";
 import { claudeProjectsDir, transcriptSlug } from "./config.mjs";
+import { ensureTrusted } from "./trust.mjs";
+
+// Rolling usage/limits picture, updated from every session's result and
+// rate_limit_event. Exposed via GET /usage for the app's always-visible meter.
+const usage = {
+  totalCostUsd: 0,
+  turns: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  lastRateLimit: null,
+  updatedAt: null,
+};
+export function getUsage() { return usage; }
+
+function recordUsage(event) {
+  if (event.type === "rate_limit_event") {
+    usage.lastRateLimit = event;
+    usage.updatedAt = new Date().toISOString();
+    return;
+  }
+  if (event.type === "result") {
+    usage.turns += event.num_turns || 1;
+    usage.totalCostUsd += event.total_cost_usd || 0;
+    const u = event.usage || {};
+    usage.inputTokens += u.input_tokens || 0;
+    usage.outputTokens += u.output_tokens || 0;
+    usage.cacheReadTokens += u.cache_read_input_tokens || 0;
+    usage.updatedAt = new Date().toISOString();
+  }
+}
 
 /** @type {Map<string, LiveSession>} keyed by Claude session id (or a temp id until assigned) */
 const live = new Map();
@@ -29,6 +60,7 @@ class LiveSession {
     });
     claude.on("event", (event) => {
       if (event.type === "result") this.lastResult = event;
+      recordUsage(event);
       this._broadcast({ type: "event", data: event });
       if (event.type === "result") this.emit_result(event);
     });
@@ -71,12 +103,14 @@ class LiveSession {
   }
 }
 
-export function startSession({ project, cwd, resumeId = null, autoApprove = true, model = null }) {
-  const claude = new ClaudeSession({ cwd, resumeId, autoApprove, model });
+export function startSession({ project, cwd, resumeId = null, permissionMode = null, autoApprove = true, model = null }) {
+  // Trust the workspace so non-bypass modes and shared memory imports work.
+  ensureTrusted(cwd);
+  const claude = new ClaudeSession({ cwd, resumeId, permissionMode, autoApprove, model });
   const session = new LiveSession(claude, {
     project,
     cwd,
-    autoApprove,
+    permissionMode: claude.permissionMode,
     startedAt: new Date().toISOString(),
   });
   live.set(session.key, session);
@@ -93,7 +127,7 @@ export function listLiveSessions() {
     id: s.claude.sessionId || s.key,
     project: s.meta.project,
     cwd: s.meta.cwd,
-    autoApprove: s.meta.autoApprove,
+    permissionMode: s.meta.permissionMode,
     startedAt: s.meta.startedAt,
     alive: s.claude.alive,
     subscribers: s.subscribers.size,
