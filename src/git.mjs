@@ -44,6 +44,18 @@ export async function pull(cwd) {
 export async function checkout(cwd, branch) {
   assertRepo(cwd);
   if (!/^[A-Za-z0-9._\/-]+$/.test(branch)) throw new Error("invalid branch name");
-  const out = await git(["checkout", branch], cwd);
-  return { ok: true, branch, output: out.trim() };
+  try {
+    // Local branch, or git's own guess of a unique origin/<branch>.
+    const out = await git(["checkout", branch], cwd);
+    return { ok: true, branch, output: out.trim() };
+  } catch (first) {
+    // Explicit fallback: create a local tracking branch from origin/<branch>.
+    try {
+      const out = await git(["checkout", "-b", branch, `origin/${branch}`], cwd);
+      return { ok: true, branch, output: out.trim() };
+    } catch (second) {
+      const msg = (second.stderr || first.stderr || first.message || "").trim();
+      throw new Error(msg || `cannot switch to ${branch}`);
+    }
+  }
 }

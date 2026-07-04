@@ -3,11 +3,9 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject var app: AppState
     @EnvironmentObject var manager: SessionManager
-    @State private var showSettings = false
-    @State private var showLoops = false
-    @State private var showUsage = false
-    @State private var showMemory = false
-    @State private var showRuns = false
+    @State private var sheet: SheetKind?
+
+    enum SheetKind: Int, Identifiable { case settings, loops, usage, memory, runs; var id: Int { rawValue } }
 
     var body: some View {
         NavigationSplitView {
@@ -28,11 +26,11 @@ struct RootView: View {
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
-                    Button { showRuns = true } label: { Image(systemName: "terminal") }
-                    Button { showUsage = true } label: { Image(systemName: "gauge.with.dots.needle.67percent") }
-                    Button { showMemory = true } label: { Image(systemName: "brain") }
-                    Button { showLoops = true } label: { Image(systemName: "clock.arrow.circlepath") }
-                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    Button { sheet = .runs } label: { Image(systemName: "terminal") }
+                    Button { sheet = .usage } label: { Image(systemName: "gauge.with.dots.needle.67percent") }
+                    Button { sheet = .memory } label: { Image(systemName: "brain") }
+                    Button { sheet = .loops } label: { Image(systemName: "clock.arrow.circlepath") }
+                    Button { sheet = .settings } label: { Image(systemName: "gearshape") }
                     Button { Task { await refresh() } } label: { Image(systemName: "arrow.clockwise") }
                 }
             }
@@ -49,11 +47,19 @@ struct RootView: View {
             detailView
         }
         .task { await refresh() }
-        .sheet(isPresented: $showSettings) { ConnectionView() }
-        .sheet(isPresented: $showLoops) { LoopsView() }
-        .sheet(isPresented: $showUsage) { UsageView() }
-        .sheet(isPresented: $showMemory) { MemoryView() }
-        .sheet(isPresented: $showRuns) { RunsView() }
+        .sheet(item: $sheet) { kind in
+            Group {
+                switch kind {
+                case .settings: ConnectionView()
+                case .loops: LoopsView()
+                case .usage: UsageView()
+                case .memory: MemoryView()
+                case .runs: RunsView()
+                }
+            }
+            .environmentObject(app)
+            .environmentObject(manager)
+        }
     }
 
     @ViewBuilder private var detailView: some View {
@@ -78,8 +84,8 @@ struct RootView: View {
         if app.reachable {
             await app.loadProjects()
             await manager.refreshLive(projects: app.projects)
-        } else {
-            showSettings = app.token.isEmpty
+        } else if app.token.isEmpty {
+            sheet = .settings
         }
     }
 }

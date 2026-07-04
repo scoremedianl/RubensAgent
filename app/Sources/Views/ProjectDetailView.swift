@@ -67,6 +67,11 @@ struct ProjectDetailView: View {
         .task(id: project.id) { await loadHistory(); await loadBranches() }
     }
 
+    // Base branches present in this repo, for one-tap switching.
+    private var baseBranches: [String] {
+        ["main", "develop", "master"].filter { branchInfo?.branches.contains($0) == true }
+    }
+
     private var gitSection: some View {
         Section("Git") {
             HStack {
@@ -85,6 +90,17 @@ struct ProjectDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(gitBusy)
+            }
+            if !baseBranches.isEmpty {
+                HStack {
+                    Text("Switch to").font(.caption).foregroundStyle(.secondary)
+                    ForEach(baseBranches, id: \.self) { b in
+                        Button(b) { Task { await switchBranch(b) } }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .disabled(gitBusy || branchInfo?.current == b)
+                    }
+                }
             }
             if let m = gitMessage {
                 Text(m).font(.caption).foregroundStyle(.secondary).lineLimit(3)
