@@ -58,7 +58,6 @@ struct NewRunSheet: View {
     @State private var selected: Project?
     @State private var prompt = ""
     @AppStorage("session.model") private var model = ""
-    @AppStorage("session.permissionMode") private var permissionModeRaw = PermissionMode.bypass.rawValue
     @State private var starting = false
 
     var body: some View {
@@ -76,9 +75,8 @@ struct NewRunSheet: View {
                 Picker("Model", selection: $model) {
                     ForEach(modelOptions) { m in Text(m.label).tag(m.id) }
                 }
-                Picker("Permissions", selection: $permissionModeRaw) {
-                    ForEach(PermissionMode.allCases) { m in Text(m.label).tag(m.rawValue) }
-                }
+                Label("Runs full auto", systemImage: "bolt.fill")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             .navigationTitle("New run")
             .toolbar {
@@ -96,7 +94,7 @@ struct NewRunSheet: View {
         starting = true
         Task {
             _ = try? await app.client.startRun(cwd: p.path, prompt: prompt,
-                                               model: model, permissionMode: permissionModeRaw)
+                                               model: model, permissionMode: "bypassPermissions")
             await onCreated()
             starting = false
             dismiss()

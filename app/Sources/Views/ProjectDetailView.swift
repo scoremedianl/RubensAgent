@@ -7,7 +7,6 @@ struct ProjectDetailView: View {
     @EnvironmentObject var manager: SessionManager
     let project: Project
 
-    @AppStorage("session.permissionMode") private var permissionModeRaw = PermissionMode.bypass.rawValue
     @AppStorage("session.model") private var model = ""
     @State private var history: [PersistedSession] = []
     @State private var loading = false
@@ -17,7 +16,8 @@ struct ProjectDetailView: View {
     @State private var gitBusy = false
     @State private var gitMessage: String?
 
-    private var permissionMode: PermissionMode { PermissionMode(rawValue: permissionModeRaw) ?? .bypass }
+    // Claude Code always runs full-auto.
+    private let permissionMode: PermissionMode = .bypass
 
     var body: some View {
         List {
@@ -26,11 +26,8 @@ struct ProjectDetailView: View {
                     ForEach(modelOptions) { m in Text(m.label).tag(m.id) }
                 }
                 .pickerStyle(.menu)
-                Picker("Permissions", selection: $permissionModeRaw) {
-                    ForEach(PermissionMode.allCases) { m in Text(m.label).tag(m.rawValue) }
-                }
-                .pickerStyle(.menu)
-                Text(permissionMode.detail).font(.caption).foregroundStyle(.secondary)
+                Label("Full auto — Claude runs tools without asking", systemImage: "bolt.fill")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button {
                     manager.open(project: project, permissionMode: permissionMode, model: model)
                 } label: {
