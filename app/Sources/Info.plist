@@ -27,13 +27,13 @@
     <string>UIInterfaceOrientationLandscapeLeft</string>
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
-  <!-- The bridge is reached over Tailscale by IP on plain ws://; allow it.
-       The tailnet is private, so this is an acceptable relaxation. -->
+  <!-- The bridge is reached over Tailscale by IP on plain http/ws. A Tailscale
+       address is NOT "local networking" to ATS, so we must fully disable ATS.
+       NOTE: do NOT add NSAllowsLocalNetworking here — its presence makes modern
+       iOS/macOS ignore NSAllowsArbitraryLoads, which is exactly the -1022 bug. -->
   <key>NSAppTransportSecurity</key>
   <dict>
     <key>NSAllowsArbitraryLoads</key>
-    <true/>
-    <key>NSAllowsLocalNetworking</key>
     <true/>
   </dict>
   <!-- iOS treats Tailscale (100.64.0.0/10) as local network. -->
