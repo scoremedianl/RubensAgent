@@ -1,0 +1,366 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0EB28A6C3BD8832927BB78B1 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B6103165FF1A0224FF70C3 /* RootView.swift */; };
+		41DD027BC24625C5EEDF5155 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FA671116EBC0A709E6EE00 /* Models.swift */; };
+		6E1F10166E8B7859F35C1D60 /* SessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A784C32760A7516AB9A3332 /* SessionView.swift */; };
+		7304091B6EE9198A1983F6D6 /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E69458B9BDB6410954D5955 /* BridgeClient.swift */; };
+		BD97C4DB3EC6B778B40384BC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D0EF43220B167E68425E4A /* AppState.swift */; };
+		C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */; };
+		E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */; };
+		F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */; };
+		F38847A3CD79EB5321D5A19B /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523CBE60D1E1FA8E39865FD0 /* ProjectDetailView.swift */; };
+		F75AE14C34CD6936A01E0E29 /* SessionSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		16559A61793FDD0EE5B115BA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1E69458B9BDB6410954D5955 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
+		40B6103165FF1A0224FF70C3 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		50D0EF43220B167E68425E4A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		523CBE60D1E1FA8E39865FD0 /* ProjectDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDetailView.swift; sourceTree = "<group>"; };
+		5A784C32760A7516AB9A3332 /* SessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionView.swift; sourceTree = "<group>"; };
+		7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClaudeConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSocket.swift; sourceTree = "<group>"; };
+		B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
+		E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopsView.swift; sourceTree = "<group>"; };
+		E7FA671116EBC0A709E6EE00 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeConsoleApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		008B500A0DCDC180513D69A0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */,
+				E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */,
+				523CBE60D1E1FA8E39865FD0 /* ProjectDetailView.swift */,
+				40B6103165FF1A0224FF70C3 /* RootView.swift */,
+				5A784C32760A7516AB9A3332 /* SessionView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1B15548ADEF277FF0F7F33AF /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */,
+				16559A61793FDD0EE5B115BA /* Info.plist */,
+				EC26C158B57D5B05A73CFFDC /* Model */,
+				008B500A0DCDC180513D69A0 /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		670AAC87B468A5D31CFD2B5E = {
+			isa = PBXGroup;
+			children = (
+				1B15548ADEF277FF0F7F33AF /* Sources */,
+				C2A6A015647F5C3CEA0941B1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C2A6A015647F5C3CEA0941B1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EC26C158B57D5B05A73CFFDC /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				50D0EF43220B167E68425E4A /* AppState.swift */,
+				1E69458B9BDB6410954D5955 /* BridgeClient.swift */,
+				E7FA671116EBC0A709E6EE00 /* Models.swift */,
+				7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		158AB19088BB233E88AF4CB3 /* ClaudeConsole */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 926627DDDC469F538AD34E44 /* Build configuration list for PBXNativeTarget "ClaudeConsole" */;
+			buildPhases = (
+				E779BF9D7265C4C5306A7B32 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ClaudeConsole;
+			packageProductDependencies = (
+			);
+			productName = ClaudeConsole;
+			productReference = 7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4015D8882406BB6212724D5D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					158AB19088BB233E88AF4CB3 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 010B00C3E881CD57AEA6BDE5 /* Build configuration list for PBXProject "ClaudeConsole" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 670AAC87B468A5D31CFD2B5E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C2A6A015647F5C3CEA0941B1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				158AB19088BB233E88AF4CB3 /* ClaudeConsole */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E779BF9D7265C4C5306A7B32 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BD97C4DB3EC6B778B40384BC /* AppState.swift in Sources */,
+				7304091B6EE9198A1983F6D6 /* BridgeClient.swift in Sources */,
+				F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */,
+				C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */,
+				E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */,
+				41DD027BC24625C5EEDF5155 /* Models.swift in Sources */,
+				F38847A3CD79EB5321D5A19B /* ProjectDetailView.swift in Sources */,
+				0EB28A6C3BD8832927BB78B1 /* RootView.swift in Sources */,
+				F75AE14C34CD6936A01E0E29 /* SessionSocket.swift in Sources */,
+				6E1F10166E8B7859F35C1D60 /* SessionView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		062B21B48F8D906D100F752E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7A267A556E2955F352F00820 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.score.claudeconsole;
+				PRODUCT_NAME = ClaudeConsole;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7B406BCA05621CE1B3F730C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AF5C49FD794ABCF8FFC18AE6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.score.claudeconsole;
+				PRODUCT_NAME = ClaudeConsole;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		010B00C3E881CD57AEA6BDE5 /* Build configuration list for PBXProject "ClaudeConsole" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				062B21B48F8D906D100F752E /* Debug */,
+				7B406BCA05621CE1B3F730C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		926627DDDC469F538AD34E44 /* Build configuration list for PBXNativeTarget "ClaudeConsole" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF5C49FD794ABCF8FFC18AE6 /* Debug */,
+				7A267A556E2955F352F00820 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4015D8882406BB6212724D5D /* Project object */;
+}

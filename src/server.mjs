@@ -39,6 +39,7 @@ async function readBody(req) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const p = url.pathname;
+  console.log(`[req] ${req.method} ${p}`);
 
   // Health is unauthenticated so the app can probe reachability.
   if (p === "/health") {
