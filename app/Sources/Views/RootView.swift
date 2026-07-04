@@ -77,7 +77,9 @@ struct RootView: View {
     @ViewBuilder private var detailView: some View {
         switch manager.selection {
         case .session(let name):
-            if let t = manager.term(name) { TerminalView(term: t) }
+            // .id(name) forces a fresh TerminalView (and poll loop) per terminal,
+            // so switching between terminals doesn't carry over stale state.
+            if let t = manager.term(name) { TerminalView(term: t).id(name) }
             else { placeholder }
         case .project(let path):
             if let p = app.projects.first(where: { $0.path == path }) { ProjectDetailView(project: p) }
