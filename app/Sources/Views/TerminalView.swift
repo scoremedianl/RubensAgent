@@ -42,33 +42,54 @@ struct TerminalView: View {
     }
 
     @ViewBuilder private var screen: some View {
-        if content.isEmpty && emptyPolls > 3 {
-            // No pane output after several polls → the tmux session is gone.
-            ContentUnavailableView {
-                Label("Session ended", systemImage: "xmark.circle")
-            } description: {
-                Text("This terminal is no longer running on the Mac.")
-            } actions: {
-                Button("Remove") {
-                    Task { try? await app.client.killTerm(name: term.name); await manager.refreshTerminals(); manager.selection = nil }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(white: 0.08))
+        if !everLoaded && content.isEmpty && emptyPolls <= 4 {
+            loadingView
+        } else if content.isEmpty && emptyPolls > 4 {
+            endedView
         } else {
-            ScrollViewReader { proxy in
-                ScrollView([.horizontal, .vertical]) {
-                    Text(content.isEmpty ? "connecting…" : content)
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(Color(white: 0.92))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)
-                        .id("bottom")
-                }
-                .background(Color(white: 0.08))
-                .onChange(of: content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+            terminalScroll
+        }
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: 14) {
+            ProgressView().controlSize(.large).tint(.white)
+            Text("Starting Claude…").font(.headline).foregroundStyle(.white)
+            Text("Spinning up the terminal on your Mac — this can take a few seconds.")
+                .font(.caption).foregroundStyle(Color(white: 0.6))
+                .multilineTextAlignment(.center).frame(maxWidth: 280)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(white: 0.08))
+    }
+
+    private var endedView: some View {
+        ContentUnavailableView {
+            Label("Session ended", systemImage: "xmark.circle")
+        } description: {
+            Text("This terminal is no longer running on the Mac.")
+        } actions: {
+            Button("Remove") {
+                Task { try? await app.client.killTerm(name: term.name); await manager.refreshTerminals(); manager.selection = nil }
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(white: 0.08))
+    }
+
+    private var terminalScroll: some View {
+        ScrollViewReader { proxy in
+            ScrollView([.horizontal, .vertical]) {
+                Text(content)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(Color(white: 0.92))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .id("bottom")
+            }
+            .background(Color(white: 0.08))
+            .onChange(of: content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
     }
 

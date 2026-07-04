@@ -4,6 +4,7 @@ struct RootView: View {
     @EnvironmentObject var app: AppState
     @EnvironmentObject var manager: SessionManager
     @State private var sheet: SheetKind?
+    @State private var refreshing = false
 
     enum SheetKind: Int, Identifiable { case settings, loops, usage, memory, runs; var id: Int { rawValue } }
 
@@ -38,7 +39,11 @@ struct RootView: View {
                     Button { sheet = .memory } label: { Image(systemName: "brain") }
                     Button { sheet = .loops } label: { Image(systemName: "clock.arrow.circlepath") }
                     Button { sheet = .settings } label: { Image(systemName: "gearshape") }
-                    Button { Task { await refresh() } } label: { Image(systemName: "arrow.clockwise") }
+                    Button { Task { await refresh() } } label: {
+                        if refreshing { ProgressView().controlSize(.small) }
+                        else { Image(systemName: "arrow.clockwise") }
+                    }
+                    .disabled(refreshing)
                 }
             }
             .overlay {
@@ -87,6 +92,8 @@ struct RootView: View {
     }
 
     private func refresh() async {
+        refreshing = true
+        defer { refreshing = false }
         await app.checkHealth()
         if app.reachable {
             await app.loadProjects()

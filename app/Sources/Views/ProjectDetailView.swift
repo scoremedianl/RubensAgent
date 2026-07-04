@@ -10,6 +10,7 @@ struct ProjectDetailView: View {
     @AppStorage("session.model") private var model = ""
     @State private var history: [PersistedSession] = []
     @State private var loading = false
+    @State private var startingSession = false
 
     // Git
     @State private var branchInfo: BranchInfo?
@@ -30,10 +31,18 @@ struct ProjectDetailView: View {
                 Label("Full auto — Claude runs tools without asking", systemImage: "bolt.fill")
                     .font(.caption).foregroundStyle(.secondary)
                 Button {
-                    Task { await manager.openTerminal(project: project, model: model) }
+                    startingSession = true
+                    Task {
+                        await manager.openTerminal(project: project, model: model)
+                        startingSession = false
+                    }
                 } label: {
-                    Label("Start session", systemImage: "play.circle.fill")
+                    HStack(spacing: 8) {
+                        if startingSession { ProgressView().controlSize(.small) }
+                        Label(startingSession ? "Starting…" : "Start session", systemImage: "play.circle.fill")
+                    }
                 }
+                .disabled(startingSession)
             }
 
             gitSection
