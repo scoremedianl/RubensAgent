@@ -6,7 +6,7 @@ struct RootView: View {
     @State private var sheet: SheetKind?
     @State private var refreshing = false
 
-    enum SheetKind: Int, Identifiable { case settings, loops, usage, memory, runs; var id: Int { rawValue } }
+    enum SheetKind: Int, Identifiable { case settings, loops, usage, memory, runs, system, repos; var id: Int { rawValue } }
 
     var body: some View {
         NavigationSplitView {
@@ -34,11 +34,15 @@ struct RootView: View {
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
-                    Button { sheet = .runs } label: { Image(systemName: "terminal") }
-                    Button { sheet = .usage } label: { Image(systemName: "gauge.with.dots.needle.67percent") }
-                    Button { sheet = .memory } label: { Image(systemName: "brain") }
-                    Button { sheet = .loops } label: { Image(systemName: "clock.arrow.circlepath") }
-                    Button { sheet = .settings } label: { Image(systemName: "gearshape") }
+                    Button { sheet = .repos } label: { Image(systemName: "plus") }
+                    Menu {
+                        Button { sheet = .runs } label: { Label("Persistent runs", systemImage: "terminal") }
+                        Button { sheet = .system } label: { Label("System", systemImage: "cpu") }
+                        Button { sheet = .usage } label: { Label("Usage & limits", systemImage: "gauge.with.dots.needle.67percent") }
+                        Button { sheet = .memory } label: { Label("Memory", systemImage: "brain") }
+                        Button { sheet = .loops } label: { Label("Loops", systemImage: "clock.arrow.circlepath") }
+                        Button { sheet = .settings } label: { Label("Connection", systemImage: "gearshape") }
+                    } label: { Image(systemName: "ellipsis.circle") }
                     Button { Task { await refresh() } } label: {
                         if refreshing { ProgressView().controlSize(.small) }
                         else { Image(systemName: "arrow.clockwise") }
@@ -67,10 +71,15 @@ struct RootView: View {
                 case .usage: UsageView()
                 case .memory: MemoryView()
                 case .runs: RunsView()
+                case .system: SystemView()
+                case .repos: AddProjectView()
                 }
             }
             .environmentObject(app)
             .environmentObject(manager)
+            #if os(macOS)
+            .frame(minWidth: 480, minHeight: 560)
+            #endif
         }
     }
 

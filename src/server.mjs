@@ -16,6 +16,8 @@ import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs"
 import { branchInfo, pull, checkout } from "./git.mjs";
 import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
 import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "./term.mjs";
+import { systemStats } from "./system.mjs";
+import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -139,6 +141,18 @@ const server = http.createServer(async (req, res) => {
       const name = url.searchParams.get("name");
       if (!name) return send(res, 400, { error: "name required" });
       return send(res, 200, await killRun(name));
+    }
+    if (req.method === "GET" && p === "/system") {
+      return send(res, 200, await systemStats());
+    }
+    if (req.method === "GET" && p === "/repos") {
+      const search = url.searchParams.get("search") || "";
+      return send(res, 200, await listAccessibleRepos({ search }));
+    }
+    if (req.method === "POST" && p === "/repos/clone") {
+      const { fullName } = await readBody(req);
+      if (!fullName) return send(res, 400, { error: "fullName required" });
+      return send(res, 200, await cloneAccessible(fullName));
     }
     if (req.method === "GET" && p === "/usage") {
       return send(res, 200, getUsage());

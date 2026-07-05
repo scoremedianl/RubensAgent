@@ -131,6 +131,47 @@ struct TermSession: Codable, Identifiable, Hashable {
 struct TermListResponse: Codable { let terms: [TermSession] }
 struct TermCapture: Codable { let name: String; let content: String }
 
+// MARK: - System stats
+
+struct ThermalInfo: Codable, Hashable { let cpuSpeedLimit: Int?; let throttling: Bool }
+struct SystemStats: Codable {
+    let chip: String
+    let model: String
+    let hostname: String
+    let cores: Int
+    let performanceCores: Int?
+    let efficiencyCores: Int?
+    let totalRamBytes: Int
+    let macos: String?
+    let cpuPercent: Double?
+    let load1: Double?
+    let memUsedBytes: Int?
+    let memPercent: Double?
+    let uptimeSeconds: Int
+    let thermal: ThermalInfo
+}
+
+// MARK: - Repo browser
+
+struct Repo: Codable, Identifiable, Hashable {
+    var id: String { fullName }
+    let fullName: String
+    let name: String
+    let owner: String
+    let sshUrl: String?
+    let pushedAt: String?
+    let description: String?
+    let isPrivate: Bool
+    let cloned: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case fullName, name, owner, sshUrl, pushedAt, description
+        case isPrivate = "private"
+        case cloned
+    }
+}
+struct ReposResponse: Codable { let repos: [Repo]; let ghAuthenticated: Bool }
+
 // MARK: - stream-json event models (Claude Code output)
 
 struct StreamEvent: Decodable {

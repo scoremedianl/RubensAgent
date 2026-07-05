@@ -70,6 +70,16 @@ struct BridgeClient {
     func saveMemory(_ name: String, content: String) async throws {
         _ = try await request("/memory/file", method: "PUT", body: ["name": name, "content": content])
     }
+    func system() async throws -> SystemStats {
+        try JSONDecoder().decode(SystemStats.self, from: await request("/system"))
+    }
+    func accessibleRepos(search: String) async throws -> ReposResponse {
+        let q = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return try JSONDecoder().decode(ReposResponse.self, from: await request("/repos?search=\(q)"))
+    }
+    func cloneAccessible(fullName: String) async throws {
+        _ = try await request("/repos/clone", method: "POST", body: ["fullName": fullName])
+    }
     func runs() async throws -> [Run] {
         try JSONDecoder().decode(RunsResponse.self, from: await request("/runs")).runs
     }
