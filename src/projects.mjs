@@ -39,19 +39,21 @@ export async function listProjects() {
   }
   const projects = [];
   for (const e of entries) {
-    if (!e.isDirectory()) continue;
+    if (!e.isDirectory() || e.name.startsWith(".")) continue;
     const dir = path.join(config.projectsDir, e.name);
-    if (!fs.existsSync(path.join(dir, ".git"))) continue;
-    const p = { name: e.name, path: dir, lastActivity: lastActivity(dir) };
-    try {
-      p.branch = await git(["rev-parse", "--abbrev-ref", "HEAD"], dir);
-      p.remote = await git(["remote", "get-url", "origin"], dir).catch(() => null);
-      p.lastCommit = await git(
-        ["log", "-1", "--format=%h %s (%cr)"],
-        dir
-      ).catch(() => null);
-    } catch {
-      /* keep partial metadata */
+    const hasGit = fs.existsSync(path.join(dir, ".git"));
+    const p = { name: e.name, path: dir, git: hasGit, lastActivity: lastActivity(dir) };
+    if (hasGit) {
+      try {
+        p.branch = await git(["rev-parse", "--abbrev-ref", "HEAD"], dir);
+        p.remote = await git(["remote", "get-url", "origin"], dir).catch(() => null);
+        p.lastCommit = await git(
+          ["log", "-1", "--format=%h %s (%cr)"],
+          dir
+        ).catch(() => null);
+      } catch {
+        /* keep partial metadata */
+      }
     }
     projects.push(p);
   }
@@ -63,6 +65,18 @@ export async function listProjects() {
     return a.name.localeCompare(b.name);
   });
   return projects;
+}
+
+// Create a plain (non-git) folder in the projects directory to use with
+// Claude Code for things that aren't in git.
+export function createFolder(name) {
+  if (!/^[A-Za-z0-9._ -]+$/.test(name) || name.includes("..")) {
+    throw new Error("invalid folder name");
+  }
+  const dest = path.join(config.projectsDir, name.trim());
+  if (fs.existsSync(dest)) return { name, path: dest, created: false, reason: "already exists" };
+  fs.mkdirSync(dest, { recursive: true });
+  return { name, path: dest, created: true };
 }
 
 // Clone `<org>/<name>` over SSH into the projects directory. Idempotent.

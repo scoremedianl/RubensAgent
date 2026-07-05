@@ -75,8 +75,22 @@ async function thermal() {
   return { cpuSpeedLimit: null, throttling: false };
 }
 
+// Real temperature via `smctemp` if the user installed it (Apple Silicon).
+// Returns null when not available; the app then falls back to thermal status.
+async function temperature() {
+  const readOne = async (flag) => {
+    try {
+      const { stdout } = await run("smctemp", [flag], { timeout: 5000 });
+      const v = parseFloat(stdout.trim());
+      return Number.isFinite(v) && v > 0 ? +v.toFixed(1) : null;
+    } catch { return null; }
+  };
+  const [cpu, gpu] = await Promise.all([readOne("-c"), readOne("-g")]);
+  return { cpu, gpu };
+}
+
 export async function systemStats() {
-  const [s, cm, th] = await Promise.all([specs(), cpuAndMem(), thermal()]);
+  const [s, cm, th, temp] = await Promise.all([specs(), cpuAndMem(), thermal(), temperature()]);
   const loadavg = os.loadavg();
   return {
     ...s,
@@ -86,5 +100,7 @@ export async function systemStats() {
     memPercent: cm.memUsedBytes ? +((cm.memUsedBytes / s.totalRamBytes) * 100).toFixed(1) : null,
     uptimeSeconds: Math.round(os.uptime()),
     thermal: th,
+    tempCpu: temp.cpu,
+    tempGpu: temp.gpu,
   };
 }

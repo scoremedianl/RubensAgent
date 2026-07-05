@@ -45,7 +45,7 @@ struct ProjectDetailView: View {
                 .disabled(startingSession)
             }
 
-            gitSection
+            if project.git { gitSection }
 
             Section("History") {
                 if loading { ProgressView() }

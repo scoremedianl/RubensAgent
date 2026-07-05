@@ -144,8 +144,10 @@ struct ProjectRow: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(project.name).font(.body)
             HStack(spacing: 6) {
-                if let b = project.branch {
+                if project.git, let b = project.branch {
                     Label(b, systemImage: "arrow.triangle.branch").labelStyle(.titleAndIcon)
+                } else if !project.git {
+                    Label("Folder", systemImage: "folder")
                 }
                 if let a = project.lastActivity {
                     Text("· \(Self.relative(a))")

@@ -7,7 +7,7 @@ import http from "node:http";
 import { WebSocketServer } from "ws";
 import { config } from "./config.mjs";
 import { isAuthorized } from "./auth.mjs";
-import { listProjects, cloneRepo, listAvailableRepos } from "./projects.mjs";
+import { listProjects, cloneRepo, listAvailableRepos, createFolder } from "./projects.mjs";
 import {
   startSession, getSession, listLiveSessions,
   listPersistedSessions, readTranscript, getUsage,
@@ -64,6 +64,11 @@ const server = http.createServer(async (req, res) => {
       const { name } = await readBody(req);
       if (!name) return send(res, 400, { error: "name required" });
       return send(res, 200, await cloneRepo(name));
+    }
+    if (req.method === "POST" && p === "/projects/create") {
+      const { name } = await readBody(req);
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, createFolder(name));
     }
     if (req.method === "GET" && p === "/sessions") {
       return send(res, 200, { sessions: listLiveSessions() });

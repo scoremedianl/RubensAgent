@@ -80,6 +80,9 @@ struct BridgeClient {
     func cloneAccessible(fullName: String) async throws {
         _ = try await request("/repos/clone", method: "POST", body: ["fullName": fullName])
     }
+    func createFolder(name: String) async throws {
+        _ = try await request("/projects/create", method: "POST", body: ["name": name])
+    }
     func runs() async throws -> [Run] {
         try JSONDecoder().decode(RunsResponse.self, from: await request("/runs")).runs
     }

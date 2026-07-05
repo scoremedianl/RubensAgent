@@ -14,6 +14,17 @@ struct SystemView: View {
                         meter("Memory", value: s.memPercent ?? 0,
                               label: "\(bytes(s.memUsedBytes)) / \(bytes(s.totalRamBytes))")
                         LabeledContent("Load (1m)", value: s.load1.map { String(format: "%.2f", $0) } ?? "—")
+                        if let t = s.tempCpu {
+                            LabeledContent("Temperature") {
+                                HStack(spacing: 8) {
+                                    Label(String(format: "%.0f°C", t), systemImage: "thermometer.medium")
+                                        .foregroundStyle(t > 85 ? .red : (t > 70 ? .orange : .primary))
+                                    if let g = s.tempGpu {
+                                        Text(String(format: "GPU %.0f°", g)).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
                         LabeledContent("Thermal") {
                             if s.thermal.throttling {
                                 Label("Throttling \(s.thermal.cpuSpeedLimit ?? 0)%", systemImage: "flame.fill")

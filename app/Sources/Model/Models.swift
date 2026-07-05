@@ -10,6 +10,7 @@ struct Project: Codable, Identifiable, Hashable {
     var remote: String? = nil
     var lastCommit: String? = nil
     var lastActivity: String? = nil
+    var git: Bool = true
 }
 
 struct ProjectsResponse: Codable { let projects: [Project] }
@@ -149,6 +150,8 @@ struct SystemStats: Codable {
     let memPercent: Double?
     let uptimeSeconds: Int
     let thermal: ThermalInfo
+    var tempCpu: Double? = nil
+    var tempGpu: Double? = nil
 }
 
 // MARK: - Repo browser

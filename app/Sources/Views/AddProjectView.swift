@@ -9,18 +9,31 @@ struct AddProjectView: View {
     @State private var ghAuthed = true
     @State private var loading = true
     @State private var cloning: String?
+    @State private var newFolder = ""
+    @State private var creatingFolder = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                if !ghAuthed {
-                    ContentUnavailableView("GitHub not connected", systemImage: "person.crop.circle.badge.xmark",
-                        description: Text("Run `gh auth login` on the Mac to browse your repos."))
-                } else {
-                    List {
-                        ForEach(repos) { repo in
-                            row(repo)
+            List {
+                Section("New empty folder") {
+                    HStack {
+                        TextField("Folder name (no git)", text: $newFolder)
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            Task { await createFolder() }
+                        } label: {
+                            if creatingFolder { ProgressView().controlSize(.small) }
+                            else { Text("Create") }
                         }
+                        .disabled(newFolder.trimmingCharacters(in: .whitespaces).isEmpty || creatingFolder)
+                    }
+                }
+                Section("Clone a repo") {
+                    if !ghAuthed {
+                        Text("GitHub not connected — run `gh auth login` on the Mac.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(repos) { repo in row(repo) }
                         if loading { HStack { ProgressView(); Text("Loading repos…") } }
                     }
                 }
@@ -33,6 +46,15 @@ struct AddProjectView: View {
             }
             .task { await load() }
         }
+    }
+
+    private func createFolder() async {
+        creatingFolder = true
+        defer { creatingFolder = false }
+        try? await app.client.createFolder(name: newFolder.trimmingCharacters(in: .whitespaces))
+        newFolder = ""
+        await app.loadProjects()
+        dismiss()
     }
 
     private func row(_ repo: Repo) -> some View {
