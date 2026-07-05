@@ -78,12 +78,17 @@ async function thermal() {
 // Real temperature via `smctemp` if the user installed it (Apple Silicon).
 // Returns null when not available; the app then falls back to thermal status.
 async function temperature() {
+  // Absolute path: /usr/local/bin isn't on the launchd daemon's PATH.
+  const bin = "/usr/local/bin/smctemp";
   const readOne = async (flag) => {
-    try {
-      const { stdout } = await run("smctemp", [flag], { timeout: 5000 });
-      const v = parseFloat(stdout.trim());
-      return Number.isFinite(v) && v > 0 ? +v.toFixed(1) : null;
-    } catch { return null; }
+    for (const cmd of [bin, "smctemp"]) {
+      try {
+        const { stdout } = await run(cmd, [flag], { timeout: 5000 });
+        const v = parseFloat(stdout.trim());
+        if (Number.isFinite(v) && v > 0) return +v.toFixed(1);
+      } catch { /* try next */ }
+    }
+    return null;
   };
   const [cpu, gpu] = await Promise.all([readOne("-c"), readOne("-g")]);
   return { cpu, gpu };
