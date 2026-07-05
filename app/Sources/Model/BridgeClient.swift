@@ -59,6 +59,9 @@ struct BridgeClient {
     func usage() async throws -> Usage {
         try JSONDecoder().decode(Usage.self, from: await request("/usage"))
     }
+    func claudeUsage() async throws -> ClaudeUsage {
+        try JSONDecoder().decode(ClaudeUsage.self, from: await request("/usage/claude"))
+    }
     func memoryFiles() async throws -> [MemoryFile] {
         try JSONDecoder().decode(MemoryFilesResponse.self, from: await request("/memory")).files
     }

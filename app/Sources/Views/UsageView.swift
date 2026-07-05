@@ -3,62 +3,78 @@ import SwiftUI
 struct UsageView: View {
     @EnvironmentObject var app: AppState
     @Environment(\.dismiss) private var dismiss
-    @State private var usage: Usage?
+    @State private var usage: ClaudeUsage?
     @State private var loading = true
 
     var body: some View {
         NavigationStack {
             List {
-                if let rl = usage?.lastRateLimit?.rate_limit_info {
-                    Section("Rate limit") {
-                        LabeledContent("Status") {
-                            Text(rl.status ?? "—")
-                                .foregroundStyle(rl.status == "allowed" ? .green : .orange)
+                if loading && usage == nil {
+                    Section {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            VStack(alignment: .leading) {
+                                Text("Reading Claude usage…")
+                                Text("Runs /usage on the Mac — a few seconds.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                         }
-                        if let type = rl.rateLimitType { LabeledContent("Window", value: type) }
-                        if let reset = rl.resetsAt {
-                            LabeledContent("Resets", value: Self.relative(reset))
-                        }
-                        if let over = rl.isUsingOverage {
-                            LabeledContent("Using overage", value: over ? "yes" : "no")
-                        }
-                    }
-                } else {
-                    Section("Rate limit") {
-                        Text("No data yet — run a session first.")
-                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                Section("This daemon (since start)") {
-                    LabeledContent("Turns", value: "\(usage?.turns ?? 0)")
-                    LabeledContent("Cost", value: String(format: "$%.4f", usage?.totalCostUsd ?? 0))
-                    LabeledContent("Input tokens", value: "\(usage?.inputTokens ?? 0)")
-                    LabeledContent("Output tokens", value: "\(usage?.outputTokens ?? 0)")
-                    LabeledContent("Cache reads", value: "\(usage?.cacheReadTokens ?? 0)")
+                if let u = usage {
+                    Section("Limits") {
+                        if u.limits.isEmpty {
+                            Text("No usage data returned.").font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(u.limits) { limit in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text(limit.label)
+                                    Spacer()
+                                    Text("\(limit.percent)%").font(.callout.monospaced().weight(.semibold))
+                                }
+                                ProgressView(value: Double(limit.percent), total: 100)
+                                    .tint(limit.percent > 85 ? .red : (limit.percent > 70 ? .orange : Theme.accent))
+                                if let r = limit.resets {
+                                    Text("resets \(r)").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                    if !contributing(u.raw).isEmpty {
+                        Section("What's driving your usage") {
+                            Text(contributing(u.raw))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
             }
-            .overlay { if loading { ProgressView() } }
             .navigationTitle("Usage & limits")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { Task { await load() } } label: { Image(systemName: "arrow.clockwise") }
+                    Button { Task { await load() } } label: {
+                        if loading { ProgressView().controlSize(.small) }
+                        else { Image(systemName: "arrow.clockwise") }
+                    }.disabled(loading)
                 }
             }
             .task { await load() }
         }
     }
 
+    // Strip the limit lines; keep the "What's contributing…" body.
+    private func contributing(_ raw: String) -> String {
+        guard let r = raw.range(of: "What's contributing", options: .caseInsensitive) else { return "" }
+        return String(raw[r.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func load() async {
         loading = true
         defer { loading = false }
-        usage = try? await app.client.usage()
-    }
-
-    static func relative(_ unix: Double) -> String {
-        let date = Date(timeIntervalSince1970: unix)
-        let fmt = RelativeDateTimeFormatter()
-        fmt.unitsStyle = .short
-        return fmt.localizedString(for: date, relativeTo: Date())
+        usage = try? await app.client.claudeUsage()
     }
 }

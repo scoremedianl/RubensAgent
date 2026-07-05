@@ -86,6 +86,19 @@ struct Usage: Codable {
     let updatedAt: String?
 }
 
+// Real Claude Code usage from its `/usage` command.
+struct UsageLimit: Codable, Identifiable, Hashable {
+    var id: String { label }
+    let label: String
+    let percent: Int
+    let resets: String?
+}
+struct ClaudeUsage: Codable {
+    let limits: [UsageLimit]
+    let raw: String
+    var cached: Bool? = nil
+}
+
 // MARK: - Memory files
 
 struct MemoryFile: Codable, Identifiable, Hashable {

@@ -17,6 +17,7 @@ import { branchInfo, pull, checkout } from "./git.mjs";
 import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
 import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "./term.mjs";
 import { systemStats } from "./system.mjs";
+import { getClaudeUsage } from "./usage.mjs";
 import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
@@ -161,6 +162,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && p === "/usage") {
       return send(res, 200, getUsage());
+    }
+    if (req.method === "GET" && p === "/usage/claude") {
+      return send(res, 200, await getClaudeUsage({ force: url.searchParams.get("force") === "1" }));
     }
     if (req.method === "GET" && p === "/memory") {
       return send(res, 200, { files: listMemory() });
