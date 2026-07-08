@@ -23,6 +23,7 @@
 		BD97C4DB3EC6B778B40384BC /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D0EF43220B167E68425E4A /* AppState.swift */; };
 		C0E9E91D1867138B29F32494 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F7AB57D9523E1FE45373FA /* SystemView.swift */; };
 		C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */; };
+		C467E0DEE64A955BB3CEDC6B /* SystemWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */; };
 		D844044596769AB9D66CBDC7 /* UsageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41EF88FD366C009983F5DD6 /* UsageView.swift */; };
 		E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */; };
 		F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */; };
@@ -53,6 +54,7 @@
 		B867895D1703E72DFB9F33EE /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		C1F7AB57D9523E1FE45373FA /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
 		CF3DAD88483402F97003B14D /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
+		CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemWidget.swift; sourceTree = "<group>"; };
 		E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopsView.swift; sourceTree = "<group>"; };
 		E7FA671116EBC0A709E6EE00 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeConsoleApp.swift; sourceTree = "<group>"; };
@@ -72,6 +74,7 @@
 				1B6513F4B61E5470A1BFF1EC /* RunsView.swift */,
 				5A784C32760A7516AB9A3332 /* SessionView.swift */,
 				C1F7AB57D9523E1FE45373FA /* SystemView.swift */,
+				CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */,
 				7968BEBE7B1C45AD622DBAA9 /* TerminalView.swift */,
 				7037BA058B7F7C3D350F836F /* Theme.swift */,
 				6E507204BC6433A55B460039 /* TranscriptView.swift */,
@@ -197,6 +200,7 @@
 				F75AE14C34CD6936A01E0E29 /* SessionSocket.swift in Sources */,
 				6E1F10166E8B7859F35C1D60 /* SessionView.swift in Sources */,
 				C0E9E91D1867138B29F32494 /* SystemView.swift in Sources */,
+				C467E0DEE64A955BB3CEDC6B /* SystemWidget.swift in Sources */,
 				8F529161B209FE49E104AD42 /* TerminalView.swift in Sources */,
 				BB21C743DDDD56BB4BBBEA0D /* Theme.swift in Sources */,
 				2AC0841692D2D5A389B63CA0 /* TranscriptView.swift in Sources */,

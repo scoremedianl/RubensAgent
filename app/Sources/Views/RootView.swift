@@ -11,6 +11,12 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $manager.selection) {
+                Section {
+                    SystemWidget(system: app.system) { sheet = .system }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 8, bottom: 2, trailing: 8))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
                 if !manager.terminals.isEmpty {
                     Section("Running") {
                         ForEach(manager.terminals) { term in
@@ -107,6 +113,7 @@ struct RootView: View {
         defer { refreshing = false }
         await app.checkHealth()
         if app.reachable {
+            app.startSystemPolling()
             await app.loadProjects()
             await manager.refreshTerminals()
         } else if app.token.isEmpty {

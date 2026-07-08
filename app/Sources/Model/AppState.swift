@@ -12,8 +12,22 @@ final class AppState: ObservableObject {
     @Published var reachable = false
     @Published var statusMessage = "Not connected"
     @Published var projects: [Project] = []
+    @Published var system: SystemStats?
+
+    private var systemTask: Task<Void, Never>?
 
     var client: BridgeClient { BridgeClient(host: host, port: port, token: token) }
+
+    // Poll live system stats for the status widget.
+    func startSystemPolling() {
+        guard systemTask == nil else { return }
+        systemTask = Task { [weak self] in
+            while !Task.isCancelled {
+                if let s = try? await self?.client.system() { self?.system = s }
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+        }
+    }
     var isConfigured: Bool { !host.isEmpty && !token.isEmpty }
 
     func checkHealth() async {
