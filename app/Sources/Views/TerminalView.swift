@@ -1,4 +1,8 @@
 import SwiftUI
+import UniformTypeIdentifiers
+#if os(iOS)
+import PhotosUI
+#endif
 
 // Live mirror of a Claude terminal running in tmux on the Mac. State lives in
 // SessionManager (which polls the selected terminal centrally and caches the
@@ -11,6 +15,13 @@ struct TerminalView: View {
     @State private var draft = ""
     @State private var copied = false
     @State private var didScroll = false
+    @State private var showFileImporter = false
+    @State private var attachedPath: String?
+    @State private var attachedName: String?
+    @State private var uploading = false
+    #if os(iOS)
+    @State private var photoItem: PhotosPickerItem?
+    #endif
 
     private var content: String { manager.captures[term.name] ?? "" }
     private var everLoaded: Bool { manager.loadedTerms.contains(term.name) }
@@ -133,28 +144,101 @@ struct TerminalView: View {
     }
 
     private var inputBar: some View {
-        HStack(spacing: 10) {
-            TextField("Type to Claude…", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...4)
-                .padding(.horizontal, 14).padding(.vertical, 9)
-                .background(Theme.assistantBubble, in: Capsule())
-                .onSubmit(send)
-            Button(action: send) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : Theme.accent)
+        VStack(spacing: 6) {
+            if let name = attachedName {
+                HStack(spacing: 6) {
+                    Image(systemName: "paperclip").font(.caption)
+                    Text(name).font(.caption).lineLimit(1)
+                    if uploading { ProgressView().controlSize(.small) }
+                    Spacer()
+                    Button { attachedPath = nil; attachedName = nil } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(Theme.accentSoft, in: Capsule())
             }
-            .buttonStyle(.plain)
-            .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            HStack(spacing: 10) {
+                attachControls
+                TextField("Type to Claude…", text: $draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(Theme.assistantBubble, in: Capsule())
+                    .onSubmit(send)
+                Button(action: send) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(canSend ? Theme.accent : Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+            }
         }
         .padding(12)
         .background(.bar)
+        .fileImporter(isPresented: $showFileImporter,
+                      allowedContentTypes: [.image, .pdf, .plainText, .data],
+                      allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first { importFile(url) }
+        }
+        #if os(iOS)
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    await upload(data: data, name: "photo.jpg")
+                }
+            }
+        }
+        #endif
+    }
+
+    private var attachControls: some View {
+        HStack(spacing: 8) {
+            #if os(iOS)
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
+            }
+            #endif
+            Button { showFileImporter = true } label: {
+                Image(systemName: "paperclip").font(.title3).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var canSend: Bool {
+        !uploading && !(draft.trimmingCharacters(in: .whitespaces).isEmpty && attachedPath == nil)
+    }
+
+    private func importFile(_ url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url) else { return }
+        Task { await upload(data: data, name: url.lastPathComponent) }
+    }
+
+    private func upload(data: Data, name: String) async {
+        uploading = true
+        attachedName = name
+        defer { uploading = false }
+        if let path = try? await app.client.uploadFile(filename: name, dataBase64: data.base64EncodedString()) {
+            attachedPath = path
+        } else {
+            attachedName = nil
+        }
     }
 
     private func send() {
-        let text = draft
-        draft = ""
+        let base = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        var text = base
+        if let path = attachedPath {
+            text = base.isEmpty ? "Look at this file: \(path)" : "\(base) \(path)"
+        }
+        guard !text.isEmpty else { return }
+        draft = ""; attachedPath = nil; attachedName = nil
         Task {
             try? await app.client.sendTerm(name: term.name, text: text)
             await manager.captureNow(term.name)

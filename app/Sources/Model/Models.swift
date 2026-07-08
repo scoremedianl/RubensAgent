@@ -144,6 +144,7 @@ struct TermSession: Codable, Identifiable, Hashable {
 }
 struct TermListResponse: Codable { let terms: [TermSession] }
 struct TermCapture: Codable { let name: String; let content: String }
+struct UploadResult: Codable { let path: String; let filename: String; let bytes: Int }
 
 // MARK: - System stats
 

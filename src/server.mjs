@@ -18,6 +18,7 @@ import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
 import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "./term.mjs";
 import { systemStats } from "./system.mjs";
 import { getClaudeUsage } from "./usage.mjs";
+import { saveUpload } from "./uploads.mjs";
 import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
@@ -111,6 +112,11 @@ const server = http.createServer(async (req, res) => {
       if (!name) return send(res, 400, { error: "name required" });
       const lines = Number(url.searchParams.get("lines") || 60);
       return send(res, 200, await captureTerm(name, { lines }));
+    }
+    if (req.method === "POST" && p === "/term/upload") {
+      const { filename, dataBase64 } = await readBody(req);
+      if (!dataBase64) return send(res, 400, { error: "dataBase64 required" });
+      return send(res, 200, saveUpload(filename, dataBase64));
     }
     if (req.method === "POST" && p === "/term/send") {
       const { name, text } = await readBody(req);

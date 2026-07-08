@@ -121,6 +121,12 @@ struct BridgeClient {
     func sendKey(name: String, key: String) async throws {
         _ = try await request("/term/key", method: "POST", body: ["name": name, "key": key])
     }
+    // Upload an attachment/photo to the Mac; returns its path to reference in chat.
+    func uploadFile(filename: String, dataBase64: String) async throws -> String {
+        let data = try await request("/term/upload", method: "POST",
+                                     body: ["filename": filename, "dataBase64": dataBase64])
+        return try JSONDecoder().decode(UploadResult.self, from: data).path
+    }
     func killTerm(name: String) async throws {
         let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         _ = try await request("/term?name=\(q)", method: "DELETE")
