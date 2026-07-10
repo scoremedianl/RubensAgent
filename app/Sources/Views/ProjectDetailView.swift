@@ -45,6 +45,14 @@ struct ProjectDetailView: View {
                 .disabled(startingSession)
             }
 
+            Section("Files") {
+                NavigationLink {
+                    FileBrowserView(dirPath: project.path, title: project.name)
+                } label: {
+                    Label("Browse files", systemImage: "folder")
+                }
+            }
+
             if project.git { gitSection }
 
             Section("History") {

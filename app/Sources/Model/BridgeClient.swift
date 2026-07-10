@@ -121,6 +121,23 @@ struct BridgeClient {
     func sendKey(name: String, key: String) async throws {
         _ = try await request("/term/key", method: "POST", body: ["name": name, "key": key])
     }
+    // File browser (confined to the projects dir on the daemon).
+    func listFiles(path: String) async throws -> FileListing {
+        let q = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
+        return try JSONDecoder().decode(FileListing.self, from: await request("/files?path=\(q)"))
+    }
+    func readFileContent(path: String) async throws -> FileContent {
+        let q = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
+        return try JSONDecoder().decode(FileContent.self, from: await request("/files/read?path=\(q)"))
+    }
+    func uploadIntoFolder(dirPath: String, filename: String, dataBase64: String) async throws {
+        _ = try await request("/files/upload", method: "POST",
+                              body: ["dirPath": dirPath, "filename": filename, "dataBase64": dataBase64])
+    }
+    func makeFolder(dirPath: String, name: String) async throws {
+        _ = try await request("/files/mkdir", method: "POST", body: ["dirPath": dirPath, "name": name])
+    }
+
     // Upload an attachment/photo to the Mac; returns its path to reference in chat.
     func uploadFile(filename: String, dataBase64: String) async throws -> String {
         let data = try await request("/term/upload", method: "POST",

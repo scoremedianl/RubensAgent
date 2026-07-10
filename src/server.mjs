@@ -19,6 +19,7 @@ import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "
 import { systemStats } from "./system.mjs";
 import { getClaudeUsage } from "./usage.mjs";
 import { saveUpload } from "./uploads.mjs";
+import { listDir, readFile, writeInto, makeDir } from "./files.mjs";
 import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
@@ -165,6 +166,24 @@ const server = http.createServer(async (req, res) => {
       const { fullName } = await readBody(req);
       if (!fullName) return send(res, 400, { error: "fullName required" });
       return send(res, 200, await cloneAccessible(fullName));
+    }
+    if (req.method === "GET" && p === "/files") {
+      return send(res, 200, listDir(url.searchParams.get("path")));
+    }
+    if (req.method === "GET" && p === "/files/read") {
+      const fp = url.searchParams.get("path");
+      if (!fp) return send(res, 400, { error: "path required" });
+      return send(res, 200, readFile(fp));
+    }
+    if (req.method === "POST" && p === "/files/upload") {
+      const { dirPath, filename, dataBase64 } = await readBody(req);
+      if (!dirPath || !dataBase64) return send(res, 400, { error: "dirPath and dataBase64 required" });
+      return send(res, 200, writeInto(dirPath, filename, dataBase64));
+    }
+    if (req.method === "POST" && p === "/files/mkdir") {
+      const { dirPath, name } = await readBody(req);
+      if (!dirPath || !name) return send(res, 400, { error: "dirPath and name required" });
+      return send(res, 200, makeDir(dirPath, name));
     }
     if (req.method === "GET" && p === "/usage") {
       return send(res, 200, getUsage());

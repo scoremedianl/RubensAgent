@@ -146,6 +146,32 @@ struct TermListResponse: Codable { let terms: [TermSession] }
 struct TermCapture: Codable { let name: String; let content: String }
 struct UploadResult: Codable { let path: String; let filename: String; let bytes: Int }
 
+// MARK: - File browser
+
+struct FileEntry: Codable, Identifiable, Hashable {
+    var id: String { path }
+    let name: String
+    let path: String
+    let isDir: Bool
+    let size: Int
+    let modified: String?
+}
+struct FileListing: Codable {
+    let path: String
+    let parent: String?
+    let items: [FileEntry]
+}
+struct FileContent: Codable {
+    let path: String
+    let kind: String      // "text" | "image"
+    let size: Int
+    var content: String? = nil
+    var dataBase64: String? = nil
+    var ext: String? = nil
+    var truncated: Bool? = nil
+    var tooLarge: Bool? = nil
+}
+
 // MARK: - System stats
 
 struct ThermalInfo: Codable, Hashable { let cpuSpeedLimit: Int?; let throttling: Bool }
