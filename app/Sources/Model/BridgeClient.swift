@@ -126,6 +126,11 @@ struct BridgeClient {
         let q = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
         return try JSONDecoder().decode(FileListing.self, from: await request("/files?path=\(q)"))
     }
+    func searchFiles(root: String, query: String) async throws -> [FileEntry] {
+        let r = root.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? root
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        return try JSONDecoder().decode(FileSearchResponse.self, from: await request("/files/search?root=\(r)&q=\(q)")).items
+    }
     func readFileContent(path: String) async throws -> FileContent {
         let q = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
         return try JSONDecoder().decode(FileContent.self, from: await request("/files/read?path=\(q)"))

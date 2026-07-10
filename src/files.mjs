@@ -55,6 +55,38 @@ export function writeInto(dirPath, filename, dataBase64) {
   return { path: dest, name };
 }
 
+// Recursively search a folder subtree by name. Skips heavy dirs for speed.
+const SKIP = new Set([
+  "node_modules", "vendor", ".git", ".next", "dist", "build", "Pods",
+  "DerivedData", ".build", "target", ".venv", "__pycache__", ".idea",
+]);
+
+export function searchFiles(root, query, { limit = 400, maxDepth = 14 } = {}) {
+  const start = safe(root);
+  const q = String(query || "").toLowerCase().trim();
+  if (!q) return { items: [], truncated: false };
+  const results = [];
+  const stack = [[start, 0]];
+  while (stack.length && results.length < limit) {
+    const [dir, depth] = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      if (e.name === ".git") continue;
+      const full = path.join(dir, e.name);
+      if (e.name.toLowerCase().includes(q)) {
+        let size = 0, modified = null;
+        try { const st = fs.statSync(full); size = st.size; modified = st.mtime.toISOString(); } catch { /* ignore */ }
+        results.push({ name: e.name, path: full, isDir: e.isDirectory(), size, modified });
+        if (results.length >= limit) break;
+      }
+      if (e.isDirectory() && depth < maxDepth && !SKIP.has(e.name)) stack.push([full, depth + 1]);
+    }
+  }
+  results.sort((a, b) => (a.isDir === b.isDir ? a.name.localeCompare(b.name) : (a.isDir ? -1 : 1)));
+  return { items: results, truncated: results.length >= limit };
+}
+
 export function makeDir(dirPath, name) {
   const dir = safe(dirPath);
   const clean = String(name || "").replace(/[^A-Za-z0-9._ -]/g, "_").trim();

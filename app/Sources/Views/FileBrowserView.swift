@@ -16,26 +16,35 @@ struct FileBrowserView: View {
     @State private var newFolderName = ""
     @State private var showNewFolder = false
     @State private var uploading = false
+    @State private var searchText = ""
+    @State private var results: [FileEntry] = []
+    @State private var searching = false
     #if os(iOS)
     @State private var photoItem: PhotosPickerItem?
     #endif
 
+    private var isSearching: Bool { !searchText.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
         List {
-            if let l = listing {
-                if l.items.isEmpty && !loading {
-                    Text("Empty folder").font(.caption).foregroundStyle(.secondary)
+            if isSearching {
+                if searching { HStack { ProgressView(); Text("Searching…").foregroundStyle(.secondary) } }
+                if results.isEmpty && !searching {
+                    Text("No matches").font(.caption).foregroundStyle(.secondary)
                 }
-                ForEach(l.items) { item in
-                    if item.isDir {
-                        NavigationLink { FileBrowserView(dirPath: item.path, title: item.name) } label: { row(item) }
-                    } else {
-                        NavigationLink { FileViewer(path: item.path, name: item.name) } label: { row(item) }
+                ForEach(results) { item in entryLink(item, showPath: true) }
+            } else {
+                if let l = listing {
+                    if l.items.isEmpty && !loading {
+                        Text("Empty folder").font(.caption).foregroundStyle(.secondary)
                     }
+                    ForEach(l.items) { item in entryLink(item, showPath: false) }
                 }
+                if loading { HStack { ProgressView(); Text("Loading…").foregroundStyle(.secondary) } }
             }
-            if loading { HStack { ProgressView(); Text("Loading…").foregroundStyle(.secondary) } }
         }
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Search this folder")
+        .task(id: searchText) { await runSearch() }
         .navigationTitle(title)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -70,17 +79,47 @@ struct FileBrowserView: View {
         }
     }
 
-    private func row(_ item: FileEntry) -> some View {
+    @ViewBuilder private func entryLink(_ item: FileEntry, showPath: Bool) -> some View {
+        if item.isDir {
+            NavigationLink { FileBrowserView(dirPath: item.path, title: item.name) } label: { row(item, showPath: showPath) }
+        } else {
+            NavigationLink { FileViewer(path: item.path, name: item.name) } label: { row(item, showPath: showPath) }
+        }
+    }
+
+    private func row(_ item: FileEntry, showPath: Bool = false) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon(item))
                 .foregroundStyle(item.isDir ? Theme.accent : .secondary)
                 .frame(width: 22)
-            Text(item.name).lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.name).lineLimit(1)
+                if showPath, let rel = relativePath(item.path) {
+                    Text(rel).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
             Spacer()
             if !item.isDir {
                 Text(byteText(item.size)).font(.caption).foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func relativePath(_ full: String) -> String? {
+        let base = dirPath.hasSuffix("/") ? dirPath : dirPath + "/"
+        guard full.hasPrefix(base) else { return nil }
+        let rel = String(full.dropFirst(base.count))
+        return rel.contains("/") ? "…/" + rel : nil
+    }
+
+    private func runSearch() async {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { results = []; searching = false; return }
+        try? await Task.sleep(nanoseconds: 250_000_000)   // debounce
+        guard q == searchText.trimmingCharacters(in: .whitespaces) else { return }
+        searching = true
+        defer { searching = false }
+        results = (try? await app.client.searchFiles(root: dirPath, query: q)) ?? []
     }
 
     private func icon(_ item: FileEntry) -> String {

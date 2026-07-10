@@ -66,7 +66,7 @@ struct RootView: View {
                 }
             }
         } detail: {
-            detailView
+            NavigationStack { detailView }
         }
         .task { await refresh() }
         .sheet(item: $sheet) { kind in

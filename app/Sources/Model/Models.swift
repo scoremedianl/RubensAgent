@@ -161,6 +161,7 @@ struct FileListing: Codable {
     let parent: String?
     let items: [FileEntry]
 }
+struct FileSearchResponse: Codable { let items: [FileEntry]; var truncated: Bool? = nil }
 struct FileContent: Codable {
     let path: String
     let kind: String      // "text" | "image"

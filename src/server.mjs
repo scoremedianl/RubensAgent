@@ -19,7 +19,7 @@ import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "
 import { systemStats } from "./system.mjs";
 import { getClaudeUsage } from "./usage.mjs";
 import { saveUpload } from "./uploads.mjs";
-import { listDir, readFile, writeInto, makeDir } from "./files.mjs";
+import { listDir, readFile, writeInto, makeDir, searchFiles } from "./files.mjs";
 import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
@@ -169,6 +169,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && p === "/files") {
       return send(res, 200, listDir(url.searchParams.get("path")));
+    }
+    if (req.method === "GET" && p === "/files/search") {
+      const root = url.searchParams.get("root");
+      const q = url.searchParams.get("q") || "";
+      if (!root) return send(res, 400, { error: "root required" });
+      return send(res, 200, searchFiles(root, q));
     }
     if (req.method === "GET" && p === "/files/read") {
       const fp = url.searchParams.get("path");
