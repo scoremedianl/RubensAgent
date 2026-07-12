@@ -138,6 +138,7 @@ struct TermSession: Codable, Identifiable, Hashable {
     let model: String?
     let startedAt: String
     var running: Bool = true
+    var busy: Bool = false
     let attach: String?
 
     var projectName: String { (cwd as NSString).lastPathComponent }

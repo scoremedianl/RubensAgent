@@ -35,8 +35,13 @@ final class SessionManager: ObservableObject {
     func startPolling() {
         guard pollTask == nil else { return }
         pollTask = Task { [weak self] in
+            var tick = 0
             while !Task.isCancelled {
                 await self?.pollSelected()
+                // Refresh the terminal list (incl. each session's busy flag) a
+                // few times slower so the sidebar spinner tracks Claude working.
+                if tick % 3 == 0 { await self?.refreshTerminals() }
+                tick += 1
                 try? await Task.sleep(nanoseconds: 800_000_000)
             }
         }

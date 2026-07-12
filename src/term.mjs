@@ -82,6 +82,11 @@ export async function listTerms() {
         continue;
       }
       m.running = true;
+      // Claude's TUI shows "esc to interrupt" only while it's working.
+      try {
+        const pane = await tmux(["capture-pane", "-t", m.name, "-p"]);
+        m.busy = /esc to interrupt/i.test(pane);
+      } catch { m.busy = false; }
       terms.push(m);
     } catch { /* skip */ }
   }

@@ -21,10 +21,16 @@ struct RootView: View {
                     Section("Running") {
                         ForEach(manager.terminals) { term in
                             HStack(spacing: 8) {
-                                Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
+                                if term.busy {
+                                    ProgressView().controlSize(.small).scaleEffect(0.7).frame(width: 8, height: 8)
+                                } else {
+                                    Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
+                                }
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(term.projectName).font(.body)
-                                    Text("terminal").font(.caption).foregroundStyle(.secondary)
+                                    Text(term.busy ? "working…" : "terminal")
+                                        .font(.caption)
+                                        .foregroundStyle(term.busy ? Theme.accent : .secondary)
                                 }
                             }
                             .tag(SidebarItem.session(term.name))
