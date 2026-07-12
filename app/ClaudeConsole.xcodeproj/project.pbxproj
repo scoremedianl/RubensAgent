@@ -26,6 +26,7 @@
 		C0E9E91D1867138B29F32494 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F7AB57D9523E1FE45373FA /* SystemView.swift */; };
 		C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */; };
 		C467E0DEE64A955BB3CEDC6B /* SystemWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */; };
+		CADF860FBD985685238B7561 /* SpeechDictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B907654F284E3C085DD3F4D2 /* SpeechDictation.swift */; };
 		D844044596769AB9D66CBDC7 /* UsageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41EF88FD366C009983F5DD6 /* UsageView.swift */; };
 		E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */; };
 		F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */; };
@@ -49,12 +50,13 @@
 		6E507204BC6433A55B460039 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		7037BA058B7F7C3D350F836F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		7968BEBE7B1C45AD622DBAA9 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
-		7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClaudeConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSocket.swift; sourceTree = "<group>"; };
 		80AD33D02D57DA984BF52B89 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B41EF88FD366C009983F5DD6 /* UsageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageView.swift; sourceTree = "<group>"; };
 		B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		B867895D1703E72DFB9F33EE /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		B907654F284E3C085DD3F4D2 /* SpeechDictation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechDictation.swift; sourceTree = "<group>"; };
 		C1F7AB57D9523E1FE45373FA /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
 		CF3DAD88483402F97003B14D /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
 		CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemWidget.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				2B47BA08DDE299A84910E7A1 /* Options.swift */,
 				B867895D1703E72DFB9F33EE /* SessionManager.swift */,
 				7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */,
+				B907654F284E3C085DD3F4D2 /* SpeechDictation.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -161,6 +164,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					158AB19088BB233E88AF4CB3 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -218,6 +222,7 @@
 				FFAAC8737E7999BE16732C3C /* SessionManager.swift in Sources */,
 				F75AE14C34CD6936A01E0E29 /* SessionSocket.swift in Sources */,
 				6E1F10166E8B7859F35C1D60 /* SessionView.swift in Sources */,
+				CADF860FBD985685238B7561 /* SpeechDictation.swift in Sources */,
 				C0E9E91D1867138B29F32494 /* SystemView.swift in Sources */,
 				C467E0DEE64A955BB3CEDC6B /* SystemWidget.swift in Sources */,
 				8F529161B209FE49E104AD42 /* TerminalView.swift in Sources */,
@@ -303,7 +308,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 72W4CM9USH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
@@ -390,7 +394,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 72W4CM9USH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;

@@ -19,6 +19,8 @@ struct TerminalView: View {
     @State private var attachedPath: String?
     @State private var attachedName: String?
     @State private var uploading = false
+    @StateObject private var dictation = SpeechDictation()
+    @State private var dictationPrefix = ""
     #if os(iOS)
     @State private var photoItem: PhotosPickerItem?
     #endif
@@ -183,6 +185,9 @@ struct TerminalView: View {
                       allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first { importFile(url) }
         }
+        .onChange(of: dictation.transcript) { _, t in
+            draft = dictationPrefix + t
+        }
         #if os(iOS)
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
@@ -197,6 +202,13 @@ struct TerminalView: View {
 
     private var attachControls: some View {
         HStack(spacing: 8) {
+            Button { toggleDictation() } label: {
+                Image(systemName: dictation.isRecording ? "mic.fill" : "mic")
+                    .font(.title3)
+                    .foregroundStyle(dictation.isRecording ? .red : .secondary)
+                    .symbolEffect(.pulse, isActive: dictation.isRecording)
+            }
+            .buttonStyle(.plain)
             #if os(iOS)
             PhotosPicker(selection: $photoItem, matching: .images) {
                 Image(systemName: "photo").font(.title3).foregroundStyle(.secondary)
@@ -207,6 +219,13 @@ struct TerminalView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private func toggleDictation() {
+        if !dictation.isRecording {
+            dictationPrefix = draft.trimmingCharacters(in: .whitespaces).isEmpty ? "" : draft + " "
+        }
+        dictation.toggle()
     }
 
     private var canSend: Bool {
@@ -232,6 +251,7 @@ struct TerminalView: View {
     }
 
     private func send() {
+        dictation.stop()
         let base = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         var text = base
         if let path = attachedPath {

@@ -39,5 +39,9 @@
   <!-- iOS treats Tailscale (100.64.0.0/10) as local network. -->
   <key>NSLocalNetworkUsageDescription</key>
   <string>Connects to your Mac's Claude bridge over your private Tailscale network.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Dictate chat messages to Claude with your voice.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Transcribes your spoken Dutch into the chat field.</string>
 </dict>
 </plist>
