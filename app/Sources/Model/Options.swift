@@ -34,6 +34,7 @@ struct ModelOption: Identifiable, Hashable {
 
 let modelOptions: [ModelOption] = [
     ModelOption(id: "", label: "Default"),
+    ModelOption(id: "claude-opus-5", label: "Opus 5"),
     ModelOption(id: "claude-opus-4-8", label: "Opus 4.8"),
     ModelOption(id: "claude-sonnet-5", label: "Sonnet 5"),
     ModelOption(id: "claude-haiku-4-5-20251001", label: "Haiku 4.5"),
