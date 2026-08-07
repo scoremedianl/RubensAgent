@@ -43,6 +43,16 @@ struct ProjectDetailView: View {
                     }
                 }
                 .disabled(startingSession)
+                Button {
+                    startingSession = true
+                    Task {
+                        await manager.openTerminal(project: project, model: model, resume: true)
+                        startingSession = false
+                    }
+                } label: {
+                    Label("Resume last session", systemImage: "arrow.uturn.left.circle")
+                }
+                .disabled(startingSession)
             }
 
             Section("Files") {

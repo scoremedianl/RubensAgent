@@ -31,7 +31,8 @@ struct RootView: View {
                                 .frame(width: 18, height: 18)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(term.projectName).font(.body)
-                                    Text(term.busy ? "working…" : "terminal")
+                                        .foregroundStyle(term.running ? .primary : .secondary)
+                                    Text(term.busy ? "working…" : (term.running ? "terminal" : "stopped · resume"))
                                         .font(.caption)
                                         .foregroundStyle(term.busy ? Theme.accent : .secondary)
                                 }

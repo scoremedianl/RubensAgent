@@ -75,14 +75,22 @@ final class SessionManager: ObservableObject {
         startPolling()
     }
 
-    func openTerminal(project: Project, model: String) async {
-        guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model) else { return }
+    func openTerminal(project: Project, model: String, resume: Bool = false) async {
+        guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model, resume: resume) else { return }
         await refreshTerminals()
         selection = .session(t.name)
         startPolling()
     }
 
     func term(_ name: String) -> TermSession? { terminals.first { $0.name == name } }
+
+    // Resume a stopped session (restores its conversation via claude --continue).
+    func resume(_ name: String) async {
+        guard (try? await Bridge.client.restoreTerm(name: name)) != nil else { return }
+        await refreshTerminals()
+        selection = .session(name)
+        await captureNow(name)
+    }
 
     // Start a brand-new session and select it.
     @discardableResult

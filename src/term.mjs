@@ -34,7 +34,7 @@ function slug(cwd) {
 }
 function valid(name) { return /^[A-Za-z0-9_-]+$/.test(name); }
 
-export async function startTerm({ cwd, model = null, name = null }) {
+export async function startTerm({ cwd, model = null, name = null, resume = false }) {
   if (!cwd || !fs.existsSync(cwd)) throw new Error("cwd does not exist");
   const runName = (name && valid(name)) ? name : `cc-term-${slug(cwd)}-${crypto.randomBytes(3).toString("hex")}`;
   const scriptFile = path.join(TERM_DIR, `${runName}.sh`);
@@ -44,7 +44,7 @@ source "$HOME/.zprofile" 2>/dev/null
 [ -f "$HOME/.claude-bridge/env" ] && source "$HOME/.claude-bridge/env"
 unset ANTHROPIC_API_KEY
 cd ${JSON.stringify(cwd)} || exit 1
-exec claude --dangerously-skip-permissions ${modelArg}
+exec claude --dangerously-skip-permissions ${resume ? "--continue" : ""} ${modelArg}
 `;
   fs.writeFileSync(scriptFile, script, { mode: 0o700 });
 
@@ -75,18 +75,17 @@ export async function listTerms() {
     const base = f.replace(/\.json$/, "");
     try {
       const m = JSON.parse(fs.readFileSync(path.join(TERM_DIR, f), "utf8"));
-      if (!live.has(m.name)) {
-        // tmux session is gone — prune its files so it stops lingering as a
-        // dead "connecting" entry, and skip it.
-        cleanupFiles(base);
-        continue;
+      // Keep dead sessions listed (running:false) so they survive a reboot and
+      // can be resumed, instead of vanishing.
+      m.running = live.has(m.name);
+      m.busy = false;
+      if (m.running) {
+        // Claude's TUI shows "esc to interrupt" only while it's working.
+        try {
+          const pane = await tmux(["capture-pane", "-t", m.name, "-p"]);
+          m.busy = /esc to interrupt/i.test(pane);
+        } catch { /* ignore */ }
       }
-      m.running = true;
-      // Claude's TUI shows "esc to interrupt" only while it's working.
-      try {
-        const pane = await tmux(["capture-pane", "-t", m.name, "-p"]);
-        m.busy = /esc to interrupt/i.test(pane);
-      } catch { m.busy = false; }
       terms.push(m);
     } catch { /* skip */ }
   }
@@ -126,4 +125,15 @@ export async function killTerm(name) {
   await tmux(["kill-session", "-t", name]);
   cleanupFiles(name);   // remove metadata so it doesn't linger in the list
   return { killed: name };
+}
+
+// Resume a stopped session: start a fresh tmux terminal in the same project with
+// `claude --continue` (restores the last conversation there). Reuses the name so
+// the sidebar entry is continuous.
+export async function restoreTerm(name) {
+  if (!valid(name)) throw new Error("invalid name");
+  let meta;
+  try { meta = JSON.parse(fs.readFileSync(metaPath(name), "utf8")); }
+  catch { throw new Error("session not found"); }
+  return startTerm({ cwd: meta.cwd, model: meta.model, name, resume: true });
 }

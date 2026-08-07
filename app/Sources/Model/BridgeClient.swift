@@ -103,8 +103,8 @@ struct BridgeClient {
         _ = try await request("/runs?name=\(q)", method: "DELETE")
     }
     // Interactive terminal sessions (tmux-mirrored).
-    func startTerm(cwd: String, model: String) async throws -> TermSession {
-        var body: [String: Any] = ["cwd": cwd]
+    func startTerm(cwd: String, model: String, resume: Bool = false) async throws -> TermSession {
+        var body: [String: Any] = ["cwd": cwd, "resume": resume]
         if !model.isEmpty { body["model"] = model }
         return try JSONDecoder().decode(TermSession.self, from: await request("/term/start", method: "POST", body: body))
     }
@@ -152,6 +152,10 @@ struct BridgeClient {
     func killTerm(name: String) async throws {
         let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         _ = try await request("/term?name=\(q)", method: "DELETE")
+    }
+    // Resume a stopped session (claude --continue) and return the live term.
+    func restoreTerm(name: String) async throws -> TermSession {
+        try JSONDecoder().decode(TermSession.self, from: await request("/term/restore", method: "POST", body: ["name": name]))
     }
     func liveSessions() async throws -> [SessionInfo] {
         try JSONDecoder().decode(LiveSessionsResponse.self, from: await request("/sessions")).sessions

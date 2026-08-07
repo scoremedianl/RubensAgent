@@ -15,7 +15,7 @@ import {
 import { listMemory, readMemory, writeMemory, deleteMemory } from "./memory.mjs";
 import { branchInfo, pull, checkout } from "./git.mjs";
 import { startRun, listRuns, readRun, killRun, sendKeys } from "./tmux.mjs";
-import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm } from "./term.mjs";
+import { startTerm, listTerms, captureTerm, sendTerm, sendKey, killTerm, restoreTerm } from "./term.mjs";
 import { systemStats } from "./system.mjs";
 import { getClaudeUsage } from "./usage.mjs";
 import { saveUpload } from "./uploads.mjs";
@@ -104,6 +104,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && p === "/term/start") {
       return send(res, 200, await startTerm(await readBody(req)));
+    }
+    if (req.method === "POST" && p === "/term/restore") {
+      const { name } = await readBody(req);
+      if (!name) return send(res, 400, { error: "name required" });
+      return send(res, 200, await restoreTerm(name));
     }
     if (req.method === "GET" && p === "/term/list") {
       return send(res, 200, { terms: await listTerms() });

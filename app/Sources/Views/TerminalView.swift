@@ -87,10 +87,12 @@ struct TerminalView: View {
 
     private var endedView: some View {
         ContentUnavailableView {
-            Label("Session ended", systemImage: "xmark.circle")
+            Label("Session stopped", systemImage: "pause.circle")
         } description: {
-            Text("This terminal is no longer running on the Mac.")
+            Text("Resume to continue this project's last conversation, or remove it.")
         } actions: {
+            Button("Resume") { Task { await manager.resume(term.name) } }
+                .buttonStyle(.borderedProminent)
             Button("Remove") {
                 Task { try? await app.client.killTerm(name: term.name); await manager.refreshTerminals(); manager.selection = nil }
             }
