@@ -46,17 +46,32 @@ enum AgentKind: String, CaseIterable, Identifiable, Codable {
 
     var symbol: String {
         switch self {
-        case .claude: return "sparkles"
+        case .claude: return "sparkle"
         case .opencode: return "chevron.left.forwardslash.chevron.right"
-        case .codex: return "circle.hexagongrid"
+        case .codex: return "hexagon.fill"
         }
     }
 
+    /// Each agent gets its own colour so a glance at the sidebar tells you
+    /// which one is running where.
     var tint: Color {
         switch self {
-        case .claude: return Theme.accent
-        case .opencode: return .teal
-        case .codex: return .green
+        case .claude: return Theme.accent          // Claude clay
+        case .opencode: return Color(red: 0.29, green: 0.65, blue: 0.62)
+        case .codex: return Color(red: 0.10, green: 0.72, blue: 0.51)
+        }
+    }
+
+    var gradient: LinearGradient {
+        LinearGradient(colors: [tint, tint.opacity(0.65)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    var blurb: String {
+        switch self {
+        case .claude: return "Anthropic · terminal agent"
+        case .opencode: return "Open source · bring your own provider"
+        case .codex: return "OpenAI · ChatGPT account"
         }
     }
 
@@ -93,6 +108,59 @@ enum AgentKind: String, CaseIterable, Identifiable, Codable {
 struct ModelOption: Identifiable, Hashable {
     let id: String
     let label: String
+
+    /// Provider prefix of an OpenCode-style "provider/model" id, if any.
+    var provider: String? {
+        let parts = id.split(separator: "/")
+        return parts.count > 1 ? String(parts[0]) : nil
+    }
+}
+
+// A small visual identity per model family, so the picker and the session
+// header read at a glance instead of being a wall of identical rows.
+enum ModelFamily {
+    case opus, sonnet, haiku, fable, gpt, gemini, llama, other, deflt
+
+    static func of(_ id: String) -> ModelFamily {
+        if id.isEmpty { return .deflt }
+        let s = id.lowercased()
+        if s.contains("opus") { return .opus }
+        if s.contains("sonnet") { return .sonnet }
+        if s.contains("haiku") { return .haiku }
+        if s.contains("fable") { return .fable }
+        if s.contains("gpt") || s.contains("o1") || s.contains("o3") || s.contains("codex") { return .gpt }
+        if s.contains("gemini") { return .gemini }
+        if s.contains("llama") || s.contains("mistral") || s.contains("qwen") || s.contains("deepseek") { return .llama }
+        return .other
+    }
+
+    var symbol: String {
+        switch self {
+        case .opus: return "brain.head.profile"
+        case .sonnet: return "wand.and.stars"
+        case .haiku: return "bolt.fill"
+        case .fable: return "book.pages"
+        case .gpt: return "circle.hexagonpath.fill"
+        case .gemini: return "diamond.fill"
+        case .llama: return "cube.transparent"
+        case .other: return "cpu"
+        case .deflt: return "checkmark.seal"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .opus: return Color(red: 0.55, green: 0.36, blue: 0.78)
+        case .sonnet: return Color(red: 0.85, green: 0.47, blue: 0.28)
+        case .haiku: return Color(red: 0.94, green: 0.72, blue: 0.20)
+        case .fable: return Color(red: 0.36, green: 0.55, blue: 0.85)
+        case .gpt: return Color(red: 0.10, green: 0.72, blue: 0.51)
+        case .gemini: return Color(red: 0.29, green: 0.51, blue: 0.90)
+        case .llama: return Color(red: 0.80, green: 0.42, blue: 0.55)
+        case .other: return .secondary
+        case .deflt: return .secondary
+        }
+    }
 }
 
 // Kept for the older chat/loop code paths that still reference it.

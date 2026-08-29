@@ -232,6 +232,9 @@ struct AgentInfo: Codable, Identifiable, Hashable {
     let label: String
     let installed: Bool
     let authenticated: Bool
+    /// false when the login probe itself failed — which is NOT the same as
+    /// being signed out, and must not be reported to the user as such.
+    var authKnown: Bool = true
     var models: [String] = []
     var detail: String? = nil
 

@@ -15,6 +15,8 @@ struct TerminalView: View {
     @State private var draft = ""
     @State private var copied = false
     @State private var didScroll = false
+    @StateObject private var scroller = PageScroller()
+    @State private var paging = false          // showing history, not the live tail
     @State private var showFileImporter = false
     @State private var attachedPath: String?
     @State private var attachedName: String?
@@ -31,6 +33,7 @@ struct TerminalView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            sessionHeader
             screen
             Divider()
             keyBar
@@ -76,7 +79,7 @@ struct TerminalView: View {
     private var loadingView: some View {
         VStack(spacing: 14) {
             ProgressView().controlSize(.large).tint(.white)
-            Text("Starting Claude…").font(.headline).foregroundStyle(.white)
+            Text("Starting \(term.kind.label)…").font(.headline).foregroundStyle(.white)
             Text("Spinning up the terminal on your Mac — this can take a few seconds.")
                 .font(.caption).foregroundStyle(Color(white: 0.6))
                 .multilineTextAlignment(.center).frame(maxWidth: 280)
@@ -109,10 +112,11 @@ struct TerminalView: View {
                     .foregroundStyle(Color(white: 0.92))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
                     .id("bottom")
             }
-            .background(Color(white: 0.08))
+            .background(terminalBackground)
             // Scroll to the active area once; don't re-scroll on every poll
             // (that made the view jump around, badly on iPhone).
             .onChange(of: content) { _, new in
@@ -120,7 +124,65 @@ struct TerminalView: View {
                 proxy.scrollTo("bottom", anchor: .bottom)
                 didScroll = true
             }
+            // The pane itself has no scrollback (alternate screen), so a swipe
+            // or the wheel pages the agent's own view instead.
+            .terminalPaging(scroller: scroller) { up in page(up) }
+            .overlay(alignment: .bottomTrailing) { jumpToLive }
         }
+    }
+
+    private var terminalBackground: some View {
+        LinearGradient(colors: [Color(white: 0.10), Color(white: 0.065)],
+                       startPoint: .top, endPoint: .bottom)
+    }
+
+    // Only offered once you've actually paged away from the live tail.
+    @ViewBuilder private var jumpToLive: some View {
+        if paging {
+            Button {
+                paging = false
+                Task {
+                    // A few page-downs beat one: the TUI clamps at the bottom.
+                    for _ in 0..<12 { try? await app.client.sendKey(name: term.name, key: "NPage") }
+                    await manager.captureNow(term.name)
+                }
+            } label: {
+                Label("Jump to live", systemImage: "arrow.down.to.line")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.accent.opacity(0.5)))
+            }
+            .buttonStyle(.plain)
+            .padding(14)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func page(_ up: Bool) {
+        if up { paging = true }
+        Task {
+            try? await app.client.sendKey(name: term.name, key: up ? "PPage" : "NPage")
+            await manager.captureNow(term.name)
+        }
+    }
+
+    // Which agent and model this session runs, always visible.
+    private var sessionHeader: some View {
+        HStack(spacing: 8) {
+            AgentGlyph(kind: term.kind, size: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(term.kind.label).font(.caption.weight(.semibold))
+                Text(term.cwd).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            ModelChip(modelId: term.model, compact: true)
+            if manager.term(term.name)?.busy == true {
+                ProgressView().controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(.bar)
     }
 
     private var keyBar: some View {
@@ -129,6 +191,10 @@ struct TerminalView: View {
                 keyButton("esc", "Escape")
                 keyButton("⏎", "Enter")
                 keyButton("⌃C", "C-c")
+                Divider().frame(height: 16)
+                keyButton("⇞", "PPage")
+                keyButton("⇟", "NPage")
+                Divider().frame(height: 16)
                 keyButton("↑", "Up")
                 keyButton("↓", "Down")
                 keyButton("⇧⇥", "S-Tab")
@@ -140,6 +206,8 @@ struct TerminalView: View {
 
     private func keyButton(_ label: String, _ key: String) -> some View {
         Button(label) {
+            if key == "PPage" { paging = true }
+            if key == "NPage" { paging = false }
             Task { try? await app.client.sendKey(name: term.name, key: key); await manager.captureNow(term.name) }
         }
         .font(.caption.monospaced())
@@ -165,7 +233,7 @@ struct TerminalView: View {
             }
             HStack(spacing: 10) {
                 attachControls
-                TextField("Type to Claude…", text: $draft, axis: .vertical)
+                TextField("Message \(term.kind.label)…", text: $draft, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(1...4)
                     .padding(.horizontal, 14).padding(.vertical, 9)
@@ -174,7 +242,7 @@ struct TerminalView: View {
                 Button(action: send) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
-                        .foregroundStyle(canSend ? Theme.accent : Color.secondary)
+                        .foregroundStyle(canSend ? term.kind.tint : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)

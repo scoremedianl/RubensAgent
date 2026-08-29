@@ -69,11 +69,23 @@ xcodebuild -project ClaudeConsole.xcodeproj -scheme ClaudeConsole -destination '
   "trusted"` block appended to `~/.codex/config.toml`, OpenCode needs nothing.
 - **Busy detection**: Claude's TUI shows `esc to interrupt` in the footer only
   while working — that's how `/term/list` sets each session's `busy` flag.
-  OpenCode's and Codex's footer wording has **not** been confirmed against a
-  signed-in account, so those two also set `busyByChange: true` in
-  `agents.mjs`: a pane that differs from the previous capture counts as
-  working. Verified that an idle pane does not false-positive. Once you see the
-  real footer text, add it to that agent's `busy` regex and drop the flag.
+  OpenCode's and Codex's footer wording is still unconfirmed, so those two set
+  `busyByChange: true` in `agents.mjs`: a pane that differs from the previous
+  capture counts as working. Verified that an idle pane does not
+  false-positive. Once you see the real footer text, add it to that agent's
+  `busy` regex and drop the flag.
+- **Auth probes must read stderr.** `codex login status` prints "Logged in
+  using ChatGPT" on **stderr**, and exits 1 when signed out. Reading stdout
+  only made a signed-in account look unreadable while a signed-out one parsed
+  fine. `shell()` in `agents.mjs` merges both streams, and `checkAuth` returns
+  `known:false` when it recognises neither state — the app then says "could not
+  check", never "not signed in".
+- **Codex swallows the Enter that follows typed text**, leaving the message
+  unsent in its composer — intermittently, not always. `sendTerm` captures the
+  pane after sending and presses Enter again if the text is still in the last
+  three lines (`submitNeedsVerify` in the registry). An Enter on an empty
+  composer is a no-op, so this can't double-send. OpenCode's composer sits too
+  far above its status bar for that check to see, so the flag is off there.
 - **`opencode auth list` prints `0 credentials` when nothing is connected**, and
   `opencode models` still lists the free Zen models in that state — so model
   count is *not* an auth signal. Match on the credential count.
@@ -94,6 +106,13 @@ xcodebuild -project ClaudeConsole.xcodeproj -scheme ClaudeConsole -destination '
   back button.
 - **Terminal captures are polled centrally** in `SessionManager` (per-view polling
   got stuck on "Starting Claude" when switching); views read the cache.
+- **There is no scrollback to scroll.** Claude's TUI runs in tmux's alternate
+  screen (`alternate_on=1`, `history_size=0`), so `capture-pane -S -400`
+  returns exactly the same visible lines. Scrolling therefore means paging the
+  agent's *own* view: `PPage`/`NPage` through `/term/key`, wired to a swipe on
+  iOS and the scroll wheel on macOS (`TerminalScroll.swift`). Codex is the
+  exception — it runs inline (`alternate_on=0`) and does keep scrollback — but
+  paging works for all three, so that's what the app does.
 - **File ops are confined to `~/Projects`** (`src/files.mjs` `safe()`), traversal
   rejected.
 - **`gh api --paginate` for the repo list takes 10-45s**, which is why repo

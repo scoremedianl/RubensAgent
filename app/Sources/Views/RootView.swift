@@ -63,7 +63,12 @@ struct RootView: View {
                     }
                 }
             }
+            #if os(macOS)
             .searchable(text: $query, placement: .sidebar, prompt: "Search projects & sessions")
+            #else
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "Search projects & sessions")
+            #endif
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
@@ -145,7 +150,9 @@ struct RootView: View {
             app.startSystemPolling()
             await app.loadProjects()
             await manager.refreshTerminals()
-            await app.loadAgents()
+            // force: logging an agent in on the Mac must show up when you
+            // press refresh, not up to five minutes later.
+            await app.loadAgents(force: true)
         } else if app.token.isEmpty {
             sheet = .settings
         }
@@ -157,30 +164,26 @@ struct TerminalRow: View {
     let term: TermSession
 
     var body: some View {
-        HStack(spacing: 8) {
-            Group {
-                if term.busy {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
-                }
-            }
-            .frame(width: 18, height: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(term.projectName).font(.body)
+        HStack(spacing: 9) {
+            ActivityDot(busy: term.busy, running: term.running, tint: term.kind.tint)
+            AgentGlyph(kind: term.kind, size: 20, active: term.running)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(term.projectName)
+                    .font(.body)
                     .foregroundStyle(term.running ? .primary : .secondary)
-                HStack(spacing: 4) {
-                    Image(systemName: term.kind.symbol).font(.caption2)
-                    Text(term.kind.label)
-                    Text("·")
-                    Text(term.busy ? "working…" : (term.running ? "terminal" : "stopped · resume"))
-                        .foregroundStyle(term.busy ? Theme.accent : .secondary)
+                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(term.busy ? "working…" : (term.running ? term.kind.label : "stopped · resume"))
+                        .font(.caption)
+                        .foregroundStyle(term.busy ? term.kind.tint : .secondary)
+                    if let m = term.model, !m.isEmpty {
+                        ModelChip(modelId: m, compact: true)
+                    }
                 }
-                .font(.caption)
-                .foregroundStyle(term.running ? term.kind.tint : .secondary)
                 .lineLimit(1)
             }
         }
+        .padding(.vertical, 2)
     }
 }
 
@@ -210,20 +213,29 @@ struct SessionRow: View {
 struct ProjectRow: View {
     let project: Project
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(project.name).font(.body)
-            HStack(spacing: 6) {
-                if project.git, let b = project.branch {
-                    Label(b, systemImage: "arrow.triangle.branch").labelStyle(.titleAndIcon)
-                } else if !project.git {
-                    Label("Folder", systemImage: "folder")
+        HStack(spacing: 9) {
+            Image(systemName: project.git ? "shippingbox.fill" : "folder.fill")
+                .font(.caption)
+                .foregroundStyle(project.git ? Theme.accent.opacity(0.75) : .secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(project.name).font(.body).lineLimit(1)
+                HStack(spacing: 5) {
+                    if project.git, let b = project.branch {
+                        Label(b, systemImage: "arrow.triangle.branch")
+                            .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                    } else if !project.git {
+                        Text("Folder")
+                    }
+                    if let a = project.lastActivity {
+                        Text("· \(Self.relative(a))")
+                    }
                 }
-                if let a = project.lastActivity {
-                    Text("· \(Self.relative(a))")
-                }
+                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
-            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
+        .padding(.vertical, 2)
     }
 
     static func relative(_ iso: String) -> String {

@@ -77,22 +77,37 @@ struct ProjectDetailView: View {
 
     private var newSessionSection: some View {
         Section("New session") {
-            Picker("Agent", selection: $agentRaw) {
+            // Cards rather than a menu: you see all three agents and whether
+            // each is actually ready without opening anything.
+            HStack(spacing: 8) {
                 ForEach(AgentKind.allCases) { kind in
-                    Label(kind.label, systemImage: kind.symbol).tag(kind.rawValue)
+                    AgentCard(kind: kind, status: app.agent(kind), selected: kind == agent) {
+                        agentRaw = kind.rawValue
+                        // Model ids don't carry across agents (claude-opus-5
+                        // means nothing to Codex), so reset to the default.
+                        model = ""
+                    }
                 }
             }
-            .pickerStyle(.menu)
-            .onChange(of: agentRaw) { _, _ in
-                // Model ids don't carry across agents (claude-opus-5 means
-                // nothing to Codex), so reset to that agent's default.
-                model = ""
-            }
+            .padding(.vertical, 2)
 
-            Picker("Model", selection: $model) {
-                ForEach(models) { m in Text(m.label).tag(m.id) }
+            // A menu is fine for Claude's six presets, but OpenCode with
+            // OpenRouter reports hundreds — that needs a searchable list.
+            NavigationLink {
+                ModelPickerView(agent: agent, options: models, selection: $model)
+            } label: {
+                HStack {
+                    Label("Model", systemImage: "cpu")
+                    Spacer()
+                    ModelChip(modelId: model)
+                    if models.count > 1 {
+                        Text("\(models.count)")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
             }
-            .pickerStyle(.menu)
             .disabled(models.count <= 1)
 
             if let status, !status.usable {
@@ -131,14 +146,24 @@ struct ProjectDetailView: View {
 
     @ViewBuilder private func agentUnavailable(_ status: AgentInfo) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(status.installed ? "\(agent.label) is not signed in" : "\(agent.label) is not installed",
-                  systemImage: "exclamationmark.triangle.fill")
+            Label(headline(status), systemImage: "exclamationmark.triangle.fill")
                 .font(.caption).foregroundStyle(.orange)
-            Text(status.installed ? agent.loginHint : "Install it on the Mac first.")
+            Text(status.detail ?? (status.installed ? agent.loginHint : "Install it on the Mac first."))
                 .font(.caption).foregroundStyle(.secondary)
-            Button("Check again") { Task { await app.loadAgents(force: true) } }
-                .buttonStyle(.borderless).font(.caption)
+            Button {
+                Task { await app.loadAgents(force: true) }
+            } label: {
+                Label("Check again", systemImage: "arrow.clockwise").font(.caption)
+            }
+            .buttonStyle(.borderless)
         }
+    }
+
+    private func headline(_ status: AgentInfo) -> String {
+        if !status.installed { return "\(agent.label) is not installed" }
+        // Don't accuse the user of not signing in when the probe just failed.
+        if !status.authKnown { return "Could not check \(agent.label)'s login" }
+        return "\(agent.label) is not signed in"
     }
 
     // MARK: Git

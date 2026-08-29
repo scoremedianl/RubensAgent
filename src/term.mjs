@@ -130,12 +130,42 @@ export async function captureTerm(name, { lines = 0 } = {}) {
   return { name, content };
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Is the text we just typed still sitting unsent in the composer? Once a TUI
+// accepts a message it moves it into the transcript above the input, so the
+// tail of the pane is where an unsent line shows up.
+function stillInComposer(pane, text) {
+  const probe = String(text).trim();
+  if (!probe) return false;
+  const tail = pane.split("\n").filter((l) => l.trim()).slice(-3);
+  return tail.some((l) => l.includes(probe));
+}
+
 // Type a line: literal text, then Enter (two calls so text is never parsed).
+//
+// Some TUIs intermittently swallow the Enter that arrives right behind a burst
+// of typed characters, leaving the message unsent in the composer — observed
+// with Codex. For those agents we check the pane and press Enter again; an
+// extra Enter on an empty composer is a no-op, so this can't double-send.
 export async function sendTerm(name, text) {
   if (!valid(name)) throw new Error("invalid name");
-  await tmux(["send-keys", "-t", name, "-l", String(text)]);
+  const body = String(text);
+  await tmux(["send-keys", "-t", name, "-l", body]);
   await tmux(["send-keys", "-t", name, "Enter"]);
-  return { sent: true };
+
+  let agent = DEFAULT_AGENT;
+  try { agent = JSON.parse(fs.readFileSync(metaPath(name), "utf8")).agent || DEFAULT_AGENT; }
+  catch { /* pre-agent session */ }
+  if (!getAgent(agent).submitNeedsVerify) return { sent: true };
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await sleep(350);
+    const pane = await tmux(["capture-pane", "-t", name, "-p"]);
+    if (!stillInComposer(pane, body)) return { sent: true, retries: attempt };
+    await tmux(["send-keys", "-t", name, "Enter"]);
+  }
+  return { sent: true, retries: 2 };
 }
 
 // Send a special key/chord (Enter, Escape, C-c, Up, Down, "S-Tab", …).

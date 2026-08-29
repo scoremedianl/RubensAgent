@@ -48,7 +48,7 @@ final class AppState: ObservableObject {
         agents = res.agents
         // The very first call kicks off the probe and answers "checking…";
         // come back once so the picker doesn't sit there greyed out.
-        if res.pending == true {
+        if res.pending == true && !force {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if let again = try? await client.agents() { agents = again.agents }
         }

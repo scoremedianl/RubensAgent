@@ -76,9 +76,13 @@ open ClaudeConsole.xcodeproj
   working-spinner while the agent is busy, and a badge showing which agent it is.
 - **Agent picker** — Claude Code, OpenCode or Codex per session, always full-auto.
 - **Model picker** — Claude's presets (Opus 5, Opus 4.8, Sonnet 5, Haiku 4.5,
-  Fable 5); OpenCode reports its own list; Codex switches model in its TUI.
-- **Search** — filter projects and running sessions from the sidebar, search your
-  GitHub repos while typing, and search branches in the branch picker.
+  Fable 5); OpenCode reports its own list, searchable and grouped by provider;
+  Codex switches model in its TUI. Each model is tinted by family.
+- **Search everywhere** — projects and running sessions from the sidebar, your
+  GitHub repos while typing, branches in the branch picker, and models in the
+  model picker (OpenCode with OpenRouter reports 300+, grouped by provider).
+- **Scroll the terminal** — swipe on iPhone or use the wheel/trackpad on the
+  Mac to page back through an agent's long output, with a "Jump to live" button.
 - **Usage & limits** — real Claude Code `/usage` (session + weekly).
 - **System widget** — live CPU / RAM / temperature rings.
 - **Git** — browse & clone any repo you can access, searchable branch picker with

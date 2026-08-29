@@ -23,12 +23,16 @@ export function validModel(m) {
 
 // Run a command through a login shell so it sees the same PATH the user has
 // (nvm, homebrew). Returns { ok, out } and never throws.
+//
+// stdout AND stderr, always: `codex login status` prints "Logged in using
+// ChatGPT" on *stderr*, so reading stdout alone made a signed-in account look
+// unreadable while a signed-out one (which also exits non-zero) parsed fine.
 async function shell(command, timeout = 20000) {
   try {
-    const { stdout } = await run("/bin/zsh", ["-lc", command], { timeout });
-    return { ok: true, out: stdout.trim() };
+    const { stdout, stderr } = await run("/bin/zsh", ["-lc", command], { timeout });
+    return { ok: true, out: `${stdout}\n${stderr}`.trim() };
   } catch (e) {
-    return { ok: false, out: String(e.stdout || e.stderr || e.message || "").trim() };
+    return { ok: false, out: `${e.stdout || ""}\n${e.stderr || e.message || ""}`.trim() };
   }
 }
 
@@ -49,6 +53,8 @@ export const AGENTS = {
     // Claude's TUI only shows this hint while it is actually working.
     busy: /esc to interrupt/i,
     busyByChange: false,
+    // Claude submits reliably on the Enter that follows the typed text.
+    submitNeedsVerify: false,
     // Auth lives in the macOS keychain; a plain `claude auth status` over SSH
     // is keychain-blind and lies, so we don't probe it (see CLAUDE.md).
     checkAuth: null,
@@ -65,19 +71,26 @@ export const AGENTS = {
       ...(model ? ["-m", model] : []),
     ],
     busy: /esc to interrupt|esc interrupt/i,
+    // OpenCode's composer sits several lines above its status bar, so the
+    // "is it still unsent?" check can't see it — and OpenCode submitted
+    // reliably in testing anyway. Leave it off rather than pretend to verify.
+    submitNeedsVerify: false,
     // The footer wording while OpenCode works hasn't been confirmed against a
     // live provider yet, so we also treat a changing pane as "working" rather
     // than guess a string and silently never show the spinner.
     busyByChange: true,
     checkAuth: async () => {
-      const { ok, out } = await shell("opencode auth list");
+      const { out } = await shell("opencode auth list");
       // `auth list` ends with "N credentials" — 0 means nothing is connected,
-      // and the TUI will just show "Connect provider".
+      // and the TUI will just show "Connect provider". If that line is absent
+      // the command didn't do what we expect, which is NOT the same as being
+      // logged out — say so rather than accusing the user of not signing in.
       const m = plain(out).match(/(\d+)\s+credentials?/i);
-      const count = m ? Number(m[1]) : 0;
+      if (!m) return { known: false, detail: "Could not read `opencode auth list`." };
       return {
-        authenticated: ok && count > 0,
-        detail: count === 0 ? "No provider connected — run `opencode auth login` on the Mac." : null,
+        known: true,
+        authenticated: Number(m[1]) > 0,
+        detail: Number(m[1]) > 0 ? null : "No provider connected — run `opencode auth login` on the Mac.",
       };
     },
     // `opencode models` also lists the free Zen models when nothing is
@@ -89,7 +102,7 @@ export const AGENTS = {
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => /^[A-Za-z0-9._-]+\/[A-Za-z0-9._\/-]+$/.test(l))
-        .slice(0, 200);
+        .slice(0, 1000); // the app filters locally, so send them all
     },
   },
 
@@ -105,14 +118,19 @@ export const AGENTS = {
     ],
     busy: /esc to interrupt|esc again to interrupt/i,
     busyByChange: true, // footer wording unconfirmed until an account is signed in
+    // Codex intermittently swallows the Enter that immediately follows typed
+    // text, leaving the message sitting unsent in the composer. Verified: a
+    // second Enter submits it, and an Enter on an empty composer does nothing.
+    submitNeedsVerify: true,
     checkAuth: async () => {
-      const { ok, out } = await shell("codex login status");
-      const text = plain(out);
-      const loggedIn = ok && !/not logged in|logged out/i.test(text);
-      return {
-        authenticated: loggedIn,
-        detail: loggedIn ? null : "Not logged in — run `codex login` on the Mac.",
-      };
+      // `codex login status` exits 1 when signed out, so the exit code alone
+      // can't tell "signed out" from "the command broke" — match the text.
+      const text = plain((await shell("codex login status")).out);
+      if (/not logged in|logged out/i.test(text)) {
+        return { known: true, authenticated: false, detail: "Not logged in — run `codex login` on the Mac." };
+      }
+      if (/logged in/i.test(text)) return { known: true, authenticated: true, detail: null };
+      return { known: false, detail: "Could not read `codex login status`." };
     },
     // Codex has no "list models" command; the model is switched inside the TUI
     // with /model, so we only offer the account default.
@@ -156,13 +174,19 @@ let probing = null;
 async function probeOne(a) {
   const { ok, out } = await shell(`command -v ${a.bin}`, 10000);
   if (!ok || !out) {
-    return { id: a.id, label: a.label, installed: false, authenticated: false, models: [], detail: `${a.bin} not installed` };
+    return { id: a.id, label: a.label, installed: false, authenticated: false, authKnown: true, models: [], detail: `${a.bin} not installed` };
   }
-  const entry = { id: a.id, label: a.label, installed: true, path: out, authenticated: true, models: [], detail: null };
+  const entry = {
+    id: a.id, label: a.label, installed: true, path: out,
+    authenticated: true, authKnown: true, models: [], detail: null,
+  };
   if (a.checkAuth) {
     const r = await a.checkAuth();
-    entry.authenticated = r.authenticated;
-    entry.detail = r.authenticated ? null : (r.detail || `not logged in — run \`${a.bin} login\` on the Mac`);
+    // known:false means the probe itself failed. We still let you start a
+    // session — the agent may well be fine — but we don't claim it's signed in.
+    entry.authKnown = r.known !== false;
+    entry.authenticated = entry.authKnown ? r.authenticated : true;
+    entry.detail = r.detail || null;
   }
   if (a.listModels && entry.authenticated) {
     entry.models = await a.listModels();
@@ -176,7 +200,7 @@ export async function probeAgents() {
     const out = {};
     for (const a of Object.values(AGENTS)) {
       try { out[a.id] = await probeOne(a); }
-      catch (e) { out[a.id] = { id: a.id, label: a.label, installed: false, authenticated: false, models: [], detail: String(e.message || e) }; }
+      catch (e) { out[a.id] = { id: a.id, label: a.label, installed: false, authenticated: false, authKnown: false, models: [], detail: String(e.message || e) }; }
     }
     cache = { agents: Object.values(out), checkedAt: new Date().toISOString() };
     return cache;
@@ -191,7 +215,7 @@ export function agentStatus() {
     probeAgents();
     return {
       agents: Object.values(AGENTS).map((a) => ({
-        id: a.id, label: a.label, installed: false, authenticated: false, models: [], detail: "checking…",
+        id: a.id, label: a.label, installed: false, authenticated: false, authKnown: true, models: [], detail: "checking…",
       })),
       checkedAt: null,
       pending: true,
