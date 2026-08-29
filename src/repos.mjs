@@ -1,5 +1,9 @@
 // Browse every GitHub repo the authenticated user can access (own +
 // collaborator + org member) via gh, and clone one into the projects dir.
+//
+// The gh call pages through the whole API and takes 10-45s, so the result is
+// cached: the app gets the full list at once and filters it locally while you
+// type. Passing refresh:true re-fetches.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -9,35 +13,59 @@ import { config } from "./config.mjs";
 
 const run = promisify(execFile);
 
-// List accessible repos. Uses the GitHub API through gh (paginated). Returns
-// [] with ghAuthenticated:false when gh isn't logged in, so the app can prompt.
-export async function listAccessibleRepos({ search = "" } = {}) {
-  let repos;
+const TTL_MS = 5 * 60 * 1000;
+let cache = null;        // { repos, ghAuthenticated, fetchedAt }
+let inFlight = null;     // dedupe concurrent fetches
+
+async function fetchRepos() {
   try {
     const { stdout } = await run(
       "gh",
       ["api", "--paginate",
        "/user/repos?per_page=100&affiliation=owner,collaborator,organization_member&sort=pushed",
        "--jq", ".[] | {fullName: .full_name, name: .name, owner: .owner.login, sshUrl: .ssh_url, pushedAt: .pushed_at, description: .description, private: .private}"],
-      { timeout: 45000, maxBuffer: 20 * 1024 * 1024 }
+      { timeout: 90000, maxBuffer: 20 * 1024 * 1024 }
     );
     // --jq streams one JSON object per line.
-    repos = stdout.split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  } catch (e) {
-    return { repos: [], ghAuthenticated: false };
+    const repos = stdout.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    // Dedup (a repo can appear under multiple affiliations) and sort by activity.
+    const seen = new Set();
+    const deduped = repos.filter((r) => (seen.has(r.fullName) ? false : seen.add(r.fullName)));
+    deduped.sort((a, b) => (b.pushedAt || "").localeCompare(a.pushedAt || ""));
+    return { repos: deduped, ghAuthenticated: true, fetchedAt: Date.now() };
+  } catch {
+    return { repos: [], ghAuthenticated: false, fetchedAt: Date.now() };
   }
+}
+
+function annotate(repos) {
   const localNames = new Set(
     (fs.existsSync(config.projectsDir) ? fs.readdirSync(config.projectsDir) : []).map((n) => n.toLowerCase())
   );
+  return repos.map((r) => ({ ...r, cloned: localNames.has(r.name.toLowerCase()) }));
+}
+
+// Returns the full accessible-repo list. `search` still filters server-side so
+// the endpoint stays usable directly, but the app fetches once and filters
+// locally, which is what makes typing feel instant.
+export async function listAccessibleRepos({ search = "", refresh = false } = {}) {
+  const stale = !cache || Date.now() - cache.fetchedAt > TTL_MS;
+  if (refresh || stale) {
+    inFlight ||= fetchRepos().finally(() => { inFlight = null; });
+    const fresh = await inFlight;
+    // Keep a good cache rather than replacing it with a failed lookup.
+    if (fresh.ghAuthenticated || !cache) cache = fresh;
+  }
   const q = search.trim().toLowerCase();
-  const out = repos
-    .filter((r) => !q || r.fullName.toLowerCase().includes(q) || (r.description || "").toLowerCase().includes(q))
-    .map((r) => ({ ...r, cloned: localNames.has(r.name.toLowerCase()) }));
-  // Dedup (a repo can appear under multiple affiliations) and sort by activity.
-  const seen = new Set();
-  const deduped = out.filter((r) => (seen.has(r.fullName) ? false : seen.add(r.fullName)));
-  deduped.sort((a, b) => (b.pushedAt || "").localeCompare(a.pushedAt || ""));
-  return { repos: deduped, ghAuthenticated: true };
+  const filtered = q
+    ? cache.repos.filter((r) =>
+        r.fullName.toLowerCase().includes(q) || (r.description || "").toLowerCase().includes(q))
+    : cache.repos;
+  return {
+    repos: annotate(filtered),
+    ghAuthenticated: cache.ghAuthenticated,
+    fetchedAt: new Date(cache.fetchedAt).toISOString(),
+  };
 }
 
 export async function cloneAccessible(fullName) {

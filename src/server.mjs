@@ -21,6 +21,7 @@ import { getClaudeUsage } from "./usage.mjs";
 import { saveUpload } from "./uploads.mjs";
 import { listDir, readFile, writeInto, makeDir, searchFiles } from "./files.mjs";
 import { listAccessibleRepos, cloneAccessible } from "./repos.mjs";
+import { agentStatus, probeAgents, startAgentProbing } from "./agents.mjs";
 import {
   listLoops, addLoop, removeLoop, setLoopEnabled, runCronLoop, startScheduler,
   attachAutoContinue,
@@ -102,6 +103,12 @@ const server = http.createServer(async (req, res) => {
       if (!cwd || !branch) return send(res, 400, { error: "cwd and branch required" });
       return send(res, 200, await checkout(cwd, branch, { hard: hard === true }));
     }
+    if (req.method === "GET" && p === "/agents") {
+      // Served from cache so the app never waits on a login probe; ?force=1
+      // re-runs it (used by the "Recheck" button after logging in).
+      if (url.searchParams.get("force") === "1") return send(res, 200, await probeAgents());
+      return send(res, 200, agentStatus());
+    }
     if (req.method === "POST" && p === "/term/start") {
       return send(res, 200, await startTerm(await readBody(req)));
     }
@@ -165,7 +172,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && p === "/repos") {
       const search = url.searchParams.get("search") || "";
-      return send(res, 200, await listAccessibleRepos({ search }));
+      const refresh = url.searchParams.get("refresh") === "1";
+      return send(res, 200, await listAccessibleRepos({ search, refresh }));
     }
     if (req.method === "POST" && p === "/repos/clone") {
       const { fullName } = await readBody(req);
@@ -320,6 +328,7 @@ wss.on("connection", (ws) => {
 });
 
 startScheduler();
+startAgentProbing();
 server.listen(config.port, config.host, () => {
   console.log(`[bridge] listening on ${config.host}:${config.port}`);
   console.log(`[bridge] projects: ${config.projectsDir}`);

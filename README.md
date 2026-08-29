@@ -1,21 +1,27 @@
 # RubensAgent — Claude mini bridge
 
-A native **SwiftUI app (iOS + macOS)** that drives **Claude Code** sessions on an
-always-on Mac (a Mac mini), plus the **bridge daemon** it talks to. Start, manage
-and continue Claude Code sessions from your phone or laptop; the real work runs on
-the Mac and survives the app closing.
+A native **SwiftUI app (iOS + macOS)** that drives coding-agent sessions —
+**Claude Code**, **OpenCode** or **Codex** — on an always-on Mac (a Mac mini),
+plus the **bridge daemon** it talks to. Start, manage and continue sessions from
+your phone or laptop; the real work runs on the Mac and survives the app
+closing.
 
 ## How it works
 
 ```
- iPhone / Mac app  ──HTTP + WebSocket over Tailscale──▶  bridge daemon (Node)  ──▶  claude (in tmux) + git + files
-   (SwiftUI)                                              launchd, port 8787          on the Mac mini
+ iPhone / Mac app  ──HTTP + WebSocket over Tailscale──▶  bridge daemon (Node)  ──▶  claude | opencode | codex
+   (SwiftUI)                                              launchd, port 8787          (in tmux) + git + files
 ```
 
-- **Sessions are live tmux terminal-mirrors.** The daemon launches interactive
-  `claude` inside a tmux session; the app mirrors the pane (`capture-pane`) and
-  types via `send-keys`. Re-entering always shows the true current state and
-  sessions survive app close **and** daemon restart.
+- **Sessions are live tmux terminal-mirrors.** The daemon launches the agent's
+  interactive TUI inside a tmux session; the app mirrors the pane
+  (`capture-pane`) and types via `send-keys`. Re-entering always shows the true
+  current state and sessions survive app close **and** daemon restart.
+- **Any agent, same mechanism.** Claude Code, OpenCode and Codex are all
+  full-screen TUIs, so they are driven identically; `src/agents.mjs` holds only
+  what differs (launch flags, busy pattern, login check). The app greys out an
+  agent that isn't installed or signed in on the Mac and tells you the command
+  to fix it.
 - **Thin client, everything on the Mac.** The app is a window; the filesystem,
   git, MCP servers and Claude auth all live on the Mac.
 
@@ -67,16 +73,27 @@ open ClaudeConsole.xcodeproj
 ## Features
 
 - Live tmux terminal-mirror sessions; multiple at once; a sidebar overview with a
-  working-spinner while Claude is busy.
-- **Model picker** (Opus 5, Opus 4.8, Sonnet 5, Haiku 4.5, Fable 5), always full-auto.
+  working-spinner while the agent is busy, and a badge showing which agent it is.
+- **Agent picker** — Claude Code, OpenCode or Codex per session, always full-auto.
+- **Model picker** — Claude's presets (Opus 5, Opus 4.8, Sonnet 5, Haiku 4.5,
+  Fable 5); OpenCode reports its own list; Codex switches model in its TUI.
+- **Search** — filter projects and running sessions from the sidebar, search your
+  GitHub repos while typing, and search branches in the branch picker.
 - **Usage & limits** — real Claude Code `/usage` (session + weekly).
 - **System widget** — live CPU / RAM / temperature rings.
-- **Git** — browse & clone any repo you can access, switch/force-switch branches, pull.
+- **Git** — browse & clone any repo you can access, searchable branch picker with
+  switch/force-switch, pull.
 - **File explorer** per project — browse, open (text + images), upload files, search.
 - **Non-git folders** for things not in git.
 - **Attachments / photos** and **Dutch voice dictation** in the chat field.
 - Shared **memory** MD files loaded into every session; **loops** (cron + auto-continue)
   and **persistent runs** backed by tmux.
+
+## Adding another agent
+
+One entry in `src/agents.mjs` (binary, full-auto flag, resume flag, model flag,
+busy pattern, login check) and one case in the app's `AgentKind`. Nothing else
+knows which agent a session runs.
 
 ## Notes
 

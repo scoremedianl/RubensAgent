@@ -1,6 +1,10 @@
 import SwiftUI
 
 // Browse every GitHub repo you can access and clone one onto the Mac.
+//
+// The daemon's repo list comes from `gh api --paginate`, which takes tens of
+// seconds — so we fetch the whole list once (it is cached on the daemon too)
+// and filter it locally while you type. Searching never waits on the network.
 struct AddProjectView: View {
     @EnvironmentObject var app: AppState
     @Environment(\.dismiss) private var dismiss
@@ -8,9 +12,22 @@ struct AddProjectView: View {
     @State private var repos: [Repo] = []
     @State private var ghAuthed = true
     @State private var loading = true
+    @State private var refreshing = false
     @State private var cloning: String?
     @State private var newFolder = ""
     @State private var creatingFolder = false
+
+    private var matches: [Repo] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return repos }
+        // Match on owner/name and description, and let a space-separated query
+        // match all its terms ("score api" finds Score-Media/customer-api).
+        let terms = q.split(separator: " ").map(String.init)
+        return repos.filter { repo in
+            let hay = "\(repo.fullName) \(repo.description ?? "")".lowercased()
+            return terms.allSatisfy { hay.contains($0) }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,19 +45,35 @@ struct AddProjectView: View {
                         .disabled(newFolder.trimmingCharacters(in: .whitespaces).isEmpty || creatingFolder)
                     }
                 }
-                Section("Clone a repo") {
+                Section {
                     if !ghAuthed {
                         Text("GitHub not connected — run `gh auth login` on the Mac.")
                             .font(.caption).foregroundStyle(.secondary)
+                    } else if loading {
+                        HStack { ProgressView().controlSize(.small); Text("Loading repos from GitHub…") }
+                    } else if matches.isEmpty {
+                        Text(search.isEmpty ? "No repos found." : "No repo matches “\(search)”.")
+                            .font(.caption).foregroundStyle(.secondary)
                     } else {
-                        ForEach(repos) { repo in row(repo) }
-                        if loading { HStack { ProgressView(); Text("Loading repos…") } }
+                        ForEach(matches) { repo in row(repo) }
+                    }
+                } header: {
+                    HStack {
+                        Text(search.isEmpty ? "Clone a repo" : "\(matches.count) of \(repos.count)")
+                        Spacer()
+                        Button {
+                            Task { await load(refresh: true) }
+                        } label: {
+                            if refreshing { ProgressView().controlSize(.small) }
+                            else { Label("Refresh", systemImage: "arrow.clockwise").labelStyle(.iconOnly) }
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(refreshing || loading)
                     }
                 }
             }
             .navigationTitle("Add project")
             .searchable(text: $search, prompt: "Search all your repos")
-            .onSubmit(of: .search) { Task { await load() } }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
@@ -82,10 +115,11 @@ struct AddProjectView: View {
         }
     }
 
-    private func load() async {
-        loading = true
-        defer { loading = false }
-        if let res = try? await app.client.accessibleRepos(search: search) {
+    // Always fetches the unfiltered list; `matches` does the filtering.
+    private func load(refresh: Bool = false) async {
+        if refresh { refreshing = true } else { loading = true }
+        defer { refreshing = false; loading = false }
+        if let res = try? await app.client.accessibleRepos(refresh: refresh) {
             repos = res.repos
             ghAuthed = res.ghAuthenticated
         }

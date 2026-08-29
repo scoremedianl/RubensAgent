@@ -75,8 +75,9 @@ final class SessionManager: ObservableObject {
         startPolling()
     }
 
-    func openTerminal(project: Project, model: String, resume: Bool = false) async {
-        guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model, resume: resume) else { return }
+    func openTerminal(project: Project, model: String, agent: AgentKind = .claude, resume: Bool = false) async {
+        guard let t = try? await Bridge.client.startTerm(cwd: project.path, model: model,
+                                                         agent: agent, resume: resume) else { return }
         await refreshTerminals()
         selection = .session(t.name)
         startPolling()

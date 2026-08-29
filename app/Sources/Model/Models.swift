@@ -140,8 +140,12 @@ struct TermSession: Codable, Identifiable, Hashable {
     var running: Bool = true
     var busy: Bool = false
     let attach: String?
+    // Sessions created before multi-agent support are Claude Code sessions.
+    var agent: String = AgentKind.claude.rawValue
+    var agentLabel: String? = nil
 
     var projectName: String { (cwd as NSString).lastPathComponent }
+    var kind: AgentKind { AgentKind(rawValue: agent) ?? .claude }
 }
 struct TermListResponse: Codable { let terms: [TermSession] }
 struct TermCapture: Codable { let name: String; let content: String }
@@ -215,7 +219,30 @@ struct Repo: Codable, Identifiable, Hashable {
         case cloned
     }
 }
-struct ReposResponse: Codable { let repos: [Repo]; let ghAuthenticated: Bool }
+struct ReposResponse: Codable {
+    let repos: [Repo]
+    let ghAuthenticated: Bool
+    var fetchedAt: String? = nil
+}
+
+// MARK: - Coding agents (Claude Code / OpenCode / Codex)
+
+struct AgentInfo: Codable, Identifiable, Hashable {
+    let id: String
+    let label: String
+    let installed: Bool
+    let authenticated: Bool
+    var models: [String] = []
+    var detail: String? = nil
+
+    var kind: AgentKind { AgentKind(rawValue: id) ?? .claude }
+    var usable: Bool { installed && authenticated }
+}
+struct AgentsResponse: Codable {
+    let agents: [AgentInfo]
+    var checkedAt: String? = nil
+    var pending: Bool? = nil
+}
 
 // MARK: - stream-json event models (Claude Code output)
 

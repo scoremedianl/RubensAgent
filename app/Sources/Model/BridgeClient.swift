@@ -76,9 +76,11 @@ struct BridgeClient {
     func system() async throws -> SystemStats {
         try JSONDecoder().decode(SystemStats.self, from: await request("/system"))
     }
-    func accessibleRepos(search: String) async throws -> ReposResponse {
+    func accessibleRepos(search: String = "", refresh: Bool = false) async throws -> ReposResponse {
         let q = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return try JSONDecoder().decode(ReposResponse.self, from: await request("/repos?search=\(q)"))
+        return try JSONDecoder().decode(
+            ReposResponse.self,
+            from: await request("/repos?search=\(q)&refresh=\(refresh ? "1" : "0")"))
     }
     func cloneAccessible(fullName: String) async throws {
         _ = try await request("/repos/clone", method: "POST", body: ["fullName": fullName])
@@ -103,10 +105,15 @@ struct BridgeClient {
         _ = try await request("/runs?name=\(q)", method: "DELETE")
     }
     // Interactive terminal sessions (tmux-mirrored).
-    func startTerm(cwd: String, model: String, resume: Bool = false) async throws -> TermSession {
-        var body: [String: Any] = ["cwd": cwd, "resume": resume]
+    func startTerm(cwd: String, model: String, agent: AgentKind = .claude, resume: Bool = false) async throws -> TermSession {
+        var body: [String: Any] = ["cwd": cwd, "resume": resume, "agent": agent.rawValue]
         if !model.isEmpty { body["model"] = model }
         return try JSONDecoder().decode(TermSession.self, from: await request("/term/start", method: "POST", body: body))
+    }
+    // Which agents are installed and logged in on the Mac. Served from the
+    // daemon's cache; force:true re-probes (after you log one in).
+    func agents(force: Bool = false) async throws -> AgentsResponse {
+        try JSONDecoder().decode(AgentsResponse.self, from: await request("/agents?force=\(force ? "1" : "0")"))
     }
     func terms() async throws -> [TermSession] {
         try JSONDecoder().decode(TermListResponse.self, from: await request("/term/list")).terms

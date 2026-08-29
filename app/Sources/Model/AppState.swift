@@ -13,6 +13,7 @@ final class AppState: ObservableObject {
     @Published var statusMessage = "Not connected"
     @Published var projects: [Project] = []
     @Published var system: SystemStats?
+    @Published var agents: [AgentInfo] = []
 
     private var systemTask: Task<Void, Never>?
 
@@ -40,6 +41,20 @@ final class AppState: ObservableObject {
             statusMessage = "Unreachable: \(error.localizedDescription)"
         }
     }
+
+    // Which coding agents can be started. Cheap and cached on the daemon.
+    func loadAgents(force: Bool = false) async {
+        guard let res = try? await client.agents(force: force) else { return }
+        agents = res.agents
+        // The very first call kicks off the probe and answers "checking…";
+        // come back once so the picker doesn't sit there greyed out.
+        if res.pending == true {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if let again = try? await client.agents() { agents = again.agents }
+        }
+    }
+
+    func agent(_ kind: AgentKind) -> AgentInfo? { agents.first { $0.id == kind.rawValue } }
 
     func loadProjects() async {
         do { projects = try await client.projects() }

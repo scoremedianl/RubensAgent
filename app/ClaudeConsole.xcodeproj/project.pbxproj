@@ -27,6 +27,7 @@
 		C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */; };
 		C467E0DEE64A955BB3CEDC6B /* SystemWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF91A2B1BDBCEF7AE84E0E63 /* SystemWidget.swift */; };
 		CADF860FBD985685238B7561 /* SpeechDictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B907654F284E3C085DD3F4D2 /* SpeechDictation.swift */; };
+		CD5741F6F452D8EACFA69DCD /* BranchPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A3D3A5EF4E40BD62D726A5 /* BranchPickerView.swift */; };
 		D844044596769AB9D66CBDC7 /* UsageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41EF88FD366C009983F5DD6 /* UsageView.swift */; };
 		E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */; };
 		F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */; };
@@ -50,9 +51,10 @@
 		6E507204BC6433A55B460039 /* TranscriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptView.swift; sourceTree = "<group>"; };
 		7037BA058B7F7C3D350F836F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		7968BEBE7B1C45AD622DBAA9 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
-		7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7BCCCBF487ABD64270EE808A /* ClaudeConsole.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ClaudeConsole.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSocket.swift; sourceTree = "<group>"; };
 		80AD33D02D57DA984BF52B89 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A9A3D3A5EF4E40BD62D726A5 /* BranchPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerView.swift; sourceTree = "<group>"; };
 		B41EF88FD366C009983F5DD6 /* UsageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageView.swift; sourceTree = "<group>"; };
 		B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		B867895D1703E72DFB9F33EE /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				36CA117ADD1EE21E508D0E09 /* AddProjectView.swift */,
+				A9A3D3A5EF4E40BD62D726A5 /* BranchPickerView.swift */,
 				B4DB7ABC02FA8EAACDEB2563 /* ConnectionView.swift */,
 				DDA841596FF446264CEDACE2 /* FileBrowserView.swift */,
 				E4AF742FA01B8B36DCEDFF11 /* LoopsView.swift */,
@@ -164,6 +167,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					158AB19088BB233E88AF4CB3 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -205,6 +209,7 @@
 			files = (
 				0516B8DD431C4AD4D861D2A5 /* AddProjectView.swift in Sources */,
 				BD97C4DB3EC6B778B40384BC /* AppState.swift in Sources */,
+				CD5741F6F452D8EACFA69DCD /* BranchPickerView.swift in Sources */,
 				8E686D6E48939672B8898231 /* Bridge.swift in Sources */,
 				7304091B6EE9198A1983F6D6 /* BridgeClient.swift in Sources */,
 				F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */,
@@ -307,7 +312,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 72W4CM9USH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
@@ -394,7 +398,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 72W4CM9USH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;

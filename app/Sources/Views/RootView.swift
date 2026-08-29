@@ -5,48 +5,65 @@ struct RootView: View {
     @EnvironmentObject var manager: SessionManager
     @State private var sheet: SheetKind?
     @State private var refreshing = false
+    @State private var query = ""
 
     enum SheetKind: Int, Identifiable { case settings, loops, usage, memory, runs, system, repos; var id: Int { rawValue } }
+
+    // Filtering happens locally on the already-loaded lists, so typing is
+    // instant — no round trip to the Mac for every keystroke.
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
+    private var filteredProjects: [Project] {
+        let q = trimmedQuery
+        guard !q.isEmpty else { return app.projects }
+        return app.projects.filter {
+            $0.name.lowercased().contains(q)
+                || $0.path.lowercased().contains(q)
+                || ($0.branch?.lowercased().contains(q) ?? false)
+        }
+    }
+
+    private var filteredTerminals: [TermSession] {
+        let q = trimmedQuery
+        guard !q.isEmpty else { return manager.terminals }
+        return manager.terminals.filter {
+            $0.projectName.lowercased().contains(q)
+                || $0.cwd.lowercased().contains(q)
+                || $0.kind.label.lowercased().contains(q)
+        }
+    }
+
+    private var noMatches: Bool {
+        !trimmedQuery.isEmpty && filteredProjects.isEmpty && filteredTerminals.isEmpty
+    }
 
     var body: some View {
         NavigationSplitView {
             List(selection: $manager.selection) {
-                Section {
-                    SystemWidget(system: app.system) { sheet = .system }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 8, bottom: 2, trailing: 8))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                if trimmedQuery.isEmpty {
+                    Section {
+                        SystemWidget(system: app.system) { sheet = .system }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 8, bottom: 2, trailing: 8))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
                 }
-                if !manager.terminals.isEmpty {
+                if !filteredTerminals.isEmpty {
                     Section("Running") {
-                        ForEach(manager.terminals) { term in
-                            HStack(spacing: 8) {
-                                Group {
-                                    if term.busy {
-                                        ProgressView().controlSize(.small)
-                                    } else {
-                                        Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
-                                    }
-                                }
-                                .frame(width: 18, height: 18)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(term.projectName).font(.body)
-                                        .foregroundStyle(term.running ? .primary : .secondary)
-                                    Text(term.busy ? "working…" : (term.running ? "terminal" : "stopped · resume"))
-                                        .font(.caption)
-                                        .foregroundStyle(term.busy ? Theme.accent : .secondary)
-                                }
-                            }
-                            .tag(SidebarItem.session(term.name))
+                        ForEach(filteredTerminals) { term in
+                            TerminalRow(term: term).tag(SidebarItem.session(term.name))
                         }
                     }
                 }
                 Section("Projects") {
-                    ForEach(app.projects) { project in
+                    ForEach(filteredProjects) { project in
                         ProjectRow(project: project).tag(SidebarItem.project(project.path))
                     }
                 }
             }
+            .searchable(text: $query, placement: .sidebar, prompt: "Search projects & sessions")
             .navigationTitle("Claude Console")
             .toolbar {
                 ToolbarItemGroup {
@@ -67,7 +84,9 @@ struct RootView: View {
                 }
             }
             .overlay {
-                if app.projects.isEmpty {
+                if noMatches {
+                    ContentUnavailableView.search(text: query)
+                } else if app.projects.isEmpty && trimmedQuery.isEmpty {
                     ContentUnavailableView(
                         app.reachable ? "No projects" : "Not connected",
                         systemImage: app.reachable ? "folder" : "wifi.slash",
@@ -126,8 +145,41 @@ struct RootView: View {
             app.startSystemPolling()
             await app.loadProjects()
             await manager.refreshTerminals()
+            await app.loadAgents()
         } else if app.token.isEmpty {
             sheet = .settings
+        }
+    }
+}
+
+// A live terminal in the sidebar: which agent, which project, is it working.
+struct TerminalRow: View {
+    let term: TermSession
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Group {
+                if term.busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Circle().fill(term.running ? .green : .secondary).frame(width: 8, height: 8)
+                }
+            }
+            .frame(width: 18, height: 18)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(term.projectName).font(.body)
+                    .foregroundStyle(term.running ? .primary : .secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: term.kind.symbol).font(.caption2)
+                    Text(term.kind.label)
+                    Text("·")
+                    Text(term.busy ? "working…" : (term.running ? "terminal" : "stopped · resume"))
+                        .foregroundStyle(term.busy ? Theme.accent : .secondary)
+                }
+                .font(.caption)
+                .foregroundStyle(term.running ? term.kind.tint : .secondary)
+                .lineLimit(1)
+            }
         }
     }
 }
