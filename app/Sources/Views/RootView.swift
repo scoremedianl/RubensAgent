@@ -51,16 +51,21 @@ struct RootView: View {
                     }
                 }
                 if !filteredTerminals.isEmpty {
-                    Section("Running") {
+                    Section {
                         ForEach(filteredTerminals) { term in
                             TerminalRow(term: term).tag(SidebarItem.session(term.name))
                         }
+                    } header: {
+                        sectionHeader("Running", filteredTerminals.count,
+                                      working: filteredTerminals.filter(\.busy).count)
                     }
                 }
-                Section("Projects") {
+                Section {
                     ForEach(filteredProjects) { project in
                         ProjectRow(project: project).tag(SidebarItem.project(project.path))
                     }
+                } header: {
+                    sectionHeader("Projects", filteredProjects.count, working: 0)
                 }
             }
             #if os(macOS)
@@ -123,6 +128,22 @@ struct RootView: View {
         }
     }
 
+    private func sectionHeader(_ title: String, _ count: Int, working: Int) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+            Spacer()
+            if working > 0 {
+                Text("\(working) working")
+                    .foregroundStyle(.green)
+            }
+            Text("\(count)")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .font(.caption)
+        .textCase(nil)
+    }
+
     @ViewBuilder private var detailView: some View {
         switch manager.selection {
         case .session(let name):
@@ -139,7 +160,23 @@ struct RootView: View {
     }
 
     private var placeholder: some View {
-        ContentUnavailableView("Pick a project or session", systemImage: "sidebar.left")
+        VStack(spacing: 16) {
+            HStack(spacing: 10) {
+                ForEach(AgentKind.allCases) { kind in
+                    AgentGlyph(kind: kind, size: 34, active: app.agent(kind)?.usable ?? false)
+                }
+            }
+            VStack(spacing: 5) {
+                Text("Claude Console").font(.title2.weight(.semibold))
+                Text(app.reachable
+                     ? "Pick a project to start a session, or open a running one."
+                     : app.statusMessage)
+                    .font(.callout).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func refresh() async {
@@ -164,26 +201,44 @@ struct TerminalRow: View {
     let term: TermSession
 
     var body: some View {
-        HStack(spacing: 9) {
-            ActivityDot(busy: term.busy, running: term.running, tint: term.kind.tint)
-            AgentGlyph(kind: term.kind, size: 20, active: term.running)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 10) {
+            AgentAvatar(kind: term.kind, running: term.running)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(term.projectName)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                     .foregroundStyle(term.running ? .primary : .secondary)
                     .lineLimit(1)
-                HStack(spacing: 5) {
-                    Text(term.busy ? "working…" : (term.running ? term.kind.label : "stopped · resume"))
-                        .font(.caption)
-                        .foregroundStyle(term.busy ? term.kind.tint : .secondary)
-                    if let m = term.model, !m.isEmpty {
-                        ModelChip(modelId: m, compact: true)
-                    }
-                }
-                .lineLimit(1)
+                subtitle
             }
+            Spacer(minLength: 4)
+            // A quiet spinner on the trailing edge, rather than something
+            // pulsing next to the agent icon.
+            if term.busy { ProgressView().controlSize(.small) }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
+    }
+
+    // Repeating "Claude Code · Opus 5" on every row says nothing when every
+    // session is Claude — the avatar already carries the agent. Show what
+    // actually differs per row instead.
+    @ViewBuilder private var subtitle: some View {
+        if !term.running {
+            Text("stopped · tap to resume")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            HStack(spacing: 5) {
+                if let m = term.model, !m.isEmpty {
+                    ModelChip(modelId: m, compact: true)
+                }
+                if term.busy {
+                    Text("working…")
+                        .font(.caption.weight(.medium)).foregroundStyle(.green)
+                } else if let age = RelativeTime.short(term.lastActivity ?? term.startedAt) {
+                    Text(age).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+        }
     }
 }
 
@@ -214,10 +269,12 @@ struct ProjectRow: View {
     let project: Project
     var body: some View {
         HStack(spacing: 9) {
-            Image(systemName: project.git ? "shippingbox.fill" : "folder.fill")
-                .font(.caption)
-                .foregroundStyle(project.git ? Theme.accent.opacity(0.75) : .secondary)
-                .frame(width: 20)
+            Image(systemName: project.git ? "chevron.left.slash.chevron.right" : "folder.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: 26)
+                .background(Color.primary.opacity(0.06),
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.name).font(.body).lineLimit(1)
                 HStack(spacing: 5) {

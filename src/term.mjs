@@ -18,8 +18,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { config } from "./config.mjs";
-import { getAgent, isBusy, forgetPane, validModel, DEFAULT_AGENT, AGENTS } from "./agents.mjs";
+import { config, claudeProjectsDir, transcriptSlug } from "./config.mjs";
+import {
+  getAgent, isBusy, forgetPane, validModel, DEFAULT_AGENT, AGENTS,
+  lastActivityAt, seedActivity,
+} from "./agents.mjs";
 import { ensureAgentTrusted } from "./trust.mjs";
 
 const runProcess = promisify(execFile);
@@ -91,6 +94,39 @@ function cleanupFiles(base) {
   }
 }
 
+// Claude writes a transcript per project, so its mtime tells us when a project
+// was last worked in — including before this daemon ever ran. That's the only
+// retroactive activity signal available, and it's what stops every pre-existing
+// session from claiming it was last used the day it started.
+function claudeTranscriptActivity(cwd) {
+  const dir = path.join(claudeProjectsDir, transcriptSlug(cwd));
+  let newest = 0;
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith(".jsonl")) continue;
+      const m = fs.statSync(path.join(dir, f)).mtimeMs;
+      if (m > newest) newest = m;
+    }
+  } catch { /* never used */ }
+  return newest;
+}
+
+// Persisting "last active" on every poll would rewrite a busy session's
+// metadata every couple of seconds, so only write it through occasionally.
+const PERSIST_EVERY_MS = 60000;
+const lastPersisted = new Map();
+
+function persistActivity(meta, epochMs) {
+  const previous = lastPersisted.get(meta.name) || 0;
+  if (epochMs - previous < PERSIST_EVERY_MS) return;
+  lastPersisted.set(meta.name, epochMs);
+  try {
+    const onDisk = JSON.parse(fs.readFileSync(metaPath(meta.name), "utf8"));
+    onDisk.lastActivity = new Date(epochMs).toISOString();
+    fs.writeFileSync(metaPath(meta.name), JSON.stringify(onDisk, null, 2));
+  } catch { /* the session may have just been killed */ }
+}
+
 export async function listTerms() {
   const live = await liveNames();
   const terms = [];
@@ -101,6 +137,10 @@ export async function listTerms() {
       // Sessions created before agents existed are Claude Code sessions.
       m.agent ||= DEFAULT_AGENT;
       m.agentLabel ||= getAgent(m.agent).label;
+      // Carry a restart over: without this every session's "last active"
+      // would collapse back to when it was started.
+      seedActivity(m.name, Date.parse(m.lastActivity || m.startedAt || 0) || 0);
+      if (m.agent === "claude") seedActivity(m.name, claudeTranscriptActivity(m.cwd));
       // Keep dead sessions listed (running:false) so they survive a reboot and
       // can be resumed, instead of vanishing.
       m.running = live.has(m.name);
@@ -112,11 +152,39 @@ export async function listTerms() {
           m.busy = isBusy(m.agent, m.name, pane);
         } catch { /* ignore */ }
       }
+      const active = lastActivityAt(m.name);
+      if (active) {
+        m.lastActivity = new Date(active).toISOString();
+        persistActivity(m, active);
+      } else {
+        m.lastActivity ||= m.startedAt;
+      }
       terms.push(m);
     } catch { /* skip */ }
   }
-  terms.sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""));
+  // Most recently *used* first — start time says nothing about which session
+  // you were just working in.
+  terms.sort((a, b) =>
+    (b.lastActivity || b.startedAt || "").localeCompare(a.lastActivity || a.startedAt || ""));
   return terms;
+}
+
+// Newest activity per project directory, so the project list can be ordered by
+// real use across all three agents rather than Claude's transcripts alone.
+export function termActivityByCwd() {
+  const byCwd = new Map();
+  let files = [];
+  try { files = fs.readdirSync(TERM_DIR); } catch { return byCwd; }
+  for (const f of files) {
+    if (!f.endsWith(".json")) continue;
+    try {
+      const m = JSON.parse(fs.readFileSync(path.join(TERM_DIR, f), "utf8"));
+      const when = lastActivityAt(m.name) || Date.parse(m.lastActivity || m.startedAt || 0) || 0;
+      if (!when) continue;
+      if (when > (byCwd.get(m.cwd) || 0)) byCwd.set(m.cwd, when);
+    } catch { /* skip */ }
+  }
+  return byCwd;
 }
 
 // Live mirror of the current pane. We capture just the VISIBLE screen (no

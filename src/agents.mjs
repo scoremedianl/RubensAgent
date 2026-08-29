@@ -144,27 +144,43 @@ export function getAgent(id) {
   return AGENTS[id] || AGENTS[DEFAULT_AGENT];
 }
 
-// Remember the last pane we saw per session, so agents whose "working"
-// footer we haven't confirmed can be judged by whether their screen is moving.
-// A TUI sitting at a prompt is static; one that is working animates.
+// Remember the last pane we saw per session. Two uses:
+//  - agents whose "working" footer we haven't confirmed are judged by whether
+//    their screen is moving (a TUI at a prompt is static; a working one isn't);
+//  - a pane that changed is the only honest "last active" signal we have.
+//    tmux's own #{session_activity} only advances while a client is attached,
+//    and nothing is ever attached here, so it stays equal to session_created.
 const lastPane = new Map();
+const lastChange = new Map();   // session name -> epoch ms of last pane change
 
 export function isBusy(agentId, sessionName, pane) {
   const spec = getAgent(agentId);
-  if (spec.busy.test(pane)) {
-    lastPane.set(sessionName, pane);
-    return true;
-  }
-  if (!spec.busyByChange) {
-    lastPane.set(sessionName, pane);
-    return false;
-  }
   const previous = lastPane.get(sessionName);
+  const changed = previous !== undefined && previous !== pane;
+  if (changed) lastChange.set(sessionName, Date.now());
   lastPane.set(sessionName, pane);
-  return previous !== undefined && previous !== pane;
+
+  if (spec.busy.test(pane)) return true;
+  if (!spec.busyByChange) return false;
+  return changed;
 }
 
-export function forgetPane(sessionName) { lastPane.delete(sessionName); }
+/// Epoch ms when this session's screen last changed, or undefined if it hasn't
+/// changed since the daemon started.
+export function lastActivityAt(sessionName) { return lastChange.get(sessionName); }
+
+/// Seed from persisted metadata so a daemon restart doesn't reset every
+/// session's "last active" back to when it was started.
+export function seedActivity(sessionName, epochMs) {
+  if (!epochMs) return;
+  const known = lastChange.get(sessionName) || 0;
+  if (epochMs > known) lastChange.set(sessionName, epochMs);
+}
+
+export function forgetPane(sessionName) {
+  lastPane.delete(sessionName);
+  lastChange.delete(sessionName);
+}
 
 // --- availability probe ----------------------------------------------------
 

@@ -5,6 +5,7 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { config, claudeProjectsDir, transcriptSlug } from "./config.mjs";
+import { termActivityByCwd } from "./term.mjs";
 
 const pexecFile = promisify(execFile);
 
@@ -37,12 +38,24 @@ export async function listProjects() {
   } catch {
     return [];
   }
+  // Claude's transcripts only know about Claude. Terminal sessions cover
+  // OpenCode and Codex too, so take whichever is newer.
+  const termActivity = termActivityByCwd();
   const projects = [];
   for (const e of entries) {
     if (!e.isDirectory() || e.name.startsWith(".")) continue;
     const dir = path.join(config.projectsDir, e.name);
     const hasGit = fs.existsSync(path.join(dir, ".git"));
-    const p = { name: e.name, path: dir, git: hasGit, lastActivity: lastActivity(dir) };
+    const fromTranscripts = lastActivity(dir);
+    const fromTerms = termActivity.get(dir);
+    const newest = Math.max(
+      fromTranscripts ? Date.parse(fromTranscripts) : 0,
+      fromTerms || 0
+    );
+    const p = {
+      name: e.name, path: dir, git: hasGit,
+      lastActivity: newest ? new Date(newest).toISOString() : null,
+    };
     if (hasGit) {
       try {
         p.branch = await git(["rev-parse", "--abbrev-ref", "HEAD"], dir);

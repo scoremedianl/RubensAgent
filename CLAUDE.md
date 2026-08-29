@@ -104,6 +104,13 @@ xcodebuild -project ClaudeConsole.xcodeproj -scheme ClaudeConsole -destination '
   use one `.sheet(item:)` enum (see `RootView`).
 - **Detail column** must be wrapped in a `NavigationStack` or pushed views get no
   back button.
+- **"Last active" comes from the pane diff, not tmux.** `#{session_activity}`
+  only advances while a client is attached, and nothing ever attaches here, so
+  it stays equal to `session_created`. The daemon already diffs each pane every
+  poll for busy detection, so that diff timestamps activity (`lastActivityAt`
+  in `agents.mjs`), is persisted into the session's metadata at most once a
+  minute, and seeds from Claude's transcript mtimes so sessions that predate
+  this still sort correctly. Sidebar and project list both order by it.
 - **Terminal captures are polled centrally** in `SessionManager` (per-view polling
   got stuck on "Starting Claude" when switching); views read the cache.
 - **There is no scrollback to scroll.** Claude's TUI runs in tmux's alternate

@@ -107,14 +107,19 @@ struct TerminalView: View {
     private var terminalScroll: some View {
         ScrollViewReader { proxy in
             ScrollView([.horizontal, .vertical]) {
-                Text(content)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color(white: 0.92))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .id("bottom")
+                // A horizontal ScrollView centres content narrower than the
+                // viewport, which left the 130-column pane floating with a gap
+                // down the left. Pin it to the leading edge.
+                HStack(spacing: 0) {
+                    Text(content)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color(white: 0.92))
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                    Spacer(minLength: 0)
+                }
+                .id("bottom")
             }
             .background(terminalBackground)
             // Scroll to the active area once; don't re-scroll on every poll

@@ -75,26 +75,56 @@ struct ModelChip: View {
     }
 }
 
-/// Status dot / spinner used in the sidebar and session header.
-struct ActivityDot: View {
-    let busy: Bool
+/// An agent glyph carrying its own status badge. One leading element, instead
+/// of a status dot *and* an icon competing for the same corner of every row.
+struct AgentAvatar: View {
+    let kind: AgentKind
     let running: Bool
-    var tint: Color = .green
+    var size: CGFloat = 26
 
     var body: some View {
-        Group {
-            if busy {
-                ProgressView().controlSize(.small)
-            } else {
+        AgentGlyph(kind: kind, size: size, active: running)
+            .overlay(alignment: .bottomTrailing) {
                 Circle()
-                    .fill(running ? tint : Color.secondary.opacity(0.5))
-                    .frame(width: 7, height: 7)
-                    .overlay(
-                        Circle().stroke(running ? tint.opacity(0.25) : .clear, lineWidth: 4)
-                    )
+                    .fill(running ? Color.green : Color.secondary)
+                    .frame(width: size * 0.34, height: size * 0.34)
+                    .overlay(Circle().strokeBorder(rowBackground, lineWidth: 1.5))
+                    .offset(x: 2, y: 2)
             }
-        }
-        .frame(width: 20, height: 20)
+    }
+
+    private var rowBackground: Color {
+        #if os(macOS)
+        Color(NSColor.windowBackgroundColor)
+        #else
+        Color(UIColor.systemBackground)
+        #endif
+    }
+}
+
+/// Short relative time ("3m", "2h") for list subtitles.
+enum RelativeTime {
+    static func short(_ iso: String?) -> String? {
+        guard let iso, let d = parse(iso) else { return nil }
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f.localizedString(for: d, relativeTo: Date())
+    }
+
+    /// "29 Aug, 18:52" — readable where a raw ISO string used to be printed.
+    static func friendly(_ iso: String?) -> String {
+        guard let iso, let d = parse(iso) else { return iso ?? "" }
+        let f = DateFormatter()
+        f.dateFormat = "d MMM, HH:mm"
+        return f.string(from: d)
+    }
+
+    /// The daemon sends fractional seconds; the default parser rejects those,
+    /// so try with and without.
+    private static func parse(_ iso: String) -> Date? {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return withFraction.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
     }
 }
 

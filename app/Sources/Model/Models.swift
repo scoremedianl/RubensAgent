@@ -140,6 +140,9 @@ struct TermSession: Codable, Identifiable, Hashable {
     var running: Bool = true
     var busy: Bool = false
     let attach: String?
+    /// When this session's screen last changed — what you actually want to
+    /// sort by, unlike startedAt.
+    var lastActivity: String? = nil
     // Sessions created before multi-agent support are Claude Code sessions.
     var agent: String = AgentKind.claude.rawValue
     var agentLabel: String? = nil

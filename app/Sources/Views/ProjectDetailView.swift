@@ -55,17 +55,34 @@ struct ProjectDetailView: View {
                         TranscriptView(project: project, sessionId: s.id,
                                        permissionMode: permissionMode, model: model)
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(s.id.prefix(8) + "…").font(.body.monospaced())
-                            Text(s.modified).font(.caption).foregroundStyle(.secondary)
+                        HStack(spacing: 10) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.caption).foregroundStyle(.secondary).frame(width: 18)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(RelativeTime.friendly(s.modified)).font(.body)
+                                Text(s.id.prefix(8) + "…")
+                                    .font(.caption.monospaced()).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if let age = RelativeTime.short(s.modified) {
+                                Text(age).font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
             }
 
             Section("Details") {
-                if let c = project.lastCommit { LabeledContent("Last commit", value: c) }
-                LabeledContent("Path", value: project.path).font(.caption)
+                if let c = project.lastCommit {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Last commit").font(.caption).foregroundStyle(.secondary)
+                        Text(c).font(.callout).lineLimit(3)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Path").font(.caption).foregroundStyle(.secondary)
+                    Text(project.path).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
             }
         }
         .navigationTitle(project.name)
@@ -79,7 +96,7 @@ struct ProjectDetailView: View {
         Section("New session") {
             // Cards rather than a menu: you see all three agents and whether
             // each is actually ready without opening anything.
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 ForEach(AgentKind.allCases) { kind in
                     AgentCard(kind: kind, status: app.agent(kind), selected: kind == agent) {
                         agentRaw = kind.rawValue
@@ -88,8 +105,10 @@ struct ProjectDetailView: View {
                         model = ""
                     }
                 }
+                Spacer(minLength: 0)
             }
-            .padding(.vertical, 2)
+            .frame(maxWidth: 520, alignment: .leading)
+            .padding(.vertical, 4)
 
             // A menu is fine for Claude's six presets, but OpenCode with
             // OpenRouter reports hundreds — that needs a searchable list.
@@ -117,30 +136,48 @@ struct ProjectDetailView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Button {
-                startingSession = true
-                Task {
-                    await manager.openTerminal(project: project, model: model, agent: agent)
-                    startingSession = false
+            HStack(spacing: 10) {
+                Button {
+                    startingSession = true
+                    Task {
+                        await manager.openTerminal(project: project, model: model, agent: agent)
+                        startingSession = false
+                    }
+                } label: {
+                    HStack(spacing: 7) {
+                        if startingSession { ProgressView().controlSize(.small) }
+                        else { Image(systemName: "play.fill") }
+                        Text(startingSession ? "Starting…" : "Start \(agent.label)")
+                    }
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(canStart ? AnyShapeStyle(agent.gradient)
+                                         : AnyShapeStyle(Color.secondary.opacity(0.25)),
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .foregroundStyle(.white)
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    if startingSession { ProgressView().controlSize(.small) }
-                    Label(startingSession ? "Starting…" : "Start session", systemImage: "play.circle.fill")
-                }
-            }
-            .disabled(startingSession || !canStart)
+                .buttonStyle(.plain)
+                .disabled(startingSession || !canStart)
 
-            Button {
-                startingSession = true
-                Task {
-                    await manager.openTerminal(project: project, model: model, agent: agent, resume: true)
-                    startingSession = false
+                Button {
+                    startingSession = true
+                    Task {
+                        await manager.openTerminal(project: project, model: model, agent: agent, resume: true)
+                        startingSession = false
+                    }
+                } label: {
+                    Label("Resume", systemImage: "arrow.uturn.left")
+                        .font(.callout.weight(.medium))
+                        .padding(.vertical, 9).padding(.horizontal, 14)
+                        .background(Color.primary.opacity(0.07),
+                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-            } label: {
-                Label("Resume last session", systemImage: "arrow.uturn.left.circle")
+                .buttonStyle(.plain)
+                .disabled(startingSession || !canStart)
             }
-            .disabled(startingSession || !canStart)
+            .frame(maxWidth: 520, alignment: .leading)
+            .padding(.vertical, 2)
         }
     }
 
