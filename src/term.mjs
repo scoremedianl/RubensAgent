@@ -38,6 +38,14 @@ async function tmux(args) {
   }
 }
 
+// Same, but the failure is not swallowed. Sending input must never report
+// success when tmux refused it — `send-keys -l` rejects a large paste with
+// "command too long" and the app used to be told the message went through.
+async function tmuxStrict(args) {
+  const { stdout } = await runProcess("tmux", args, { timeout: 30000, maxBuffer: 8 * 1024 * 1024 });
+  return stdout;
+}
+
 function metaPath(name) { return path.join(TERM_DIR, `${name}.json`); }
 function slug(cwd) {
   return path.basename(cwd).replace(/[^A-Za-z0-9]+/g, "-").toLowerCase().slice(0, 20);
@@ -210,30 +218,74 @@ function stillInComposer(pane, text) {
   return tail.some((l) => l.includes(probe));
 }
 
-// Type a line: literal text, then Enter (two calls so text is never parsed).
+// Anything longer than this, or containing a newline, goes in as a paste.
+const PASTE_THRESHOLD = 400;
+
+// A bracketed paste leaves a placeholder in the composer rather than the text
+// itself — Claude shows "[Pasted text #1 +39 lines]", Codex "[Pasted Content
+// N chars]", OpenCode "[Pasted ~40 lines]".
+const PASTE_PLACEHOLDER = /\[pasted/i;
+
+// Deliver the message body to the composer, without submitting it.
 //
-// Some TUIs intermittently swallow the Enter that arrives right behind a burst
-// of typed characters, leaving the message unsent in the composer — observed
-// with Codex. For those agents we check the pane and press Enter again; an
-// extra Enter on an empty composer is a no-op, so this can't double-send.
+// `send-keys -l` is fine for a short single line, but it is the wrong tool for
+// anything larger: tmux refuses the command outright past roughly 16KB
+// ("command too long"), and every newline in the text arrives as a Return,
+// which submits the message early and shreds a multi-line paste into one
+// message per line. Loading the text into a tmux buffer and pasting it has
+// neither problem — measured byte-identical at 2MB in well under a tenth of a
+// second — and `-p` wraps it in bracketed-paste markers, which all three TUIs
+// recognise and collapse to a single tidy placeholder line.
+async function deliver(name, body) {
+  if (body.length <= PASTE_THRESHOLD && !body.includes("\n")) {
+    await tmuxStrict(["send-keys", "-t", name, "-l", body]);
+    return false;
+  }
+  const file = path.join(TERM_DIR, `.paste-${name}`);
+  const buffer = `bridge-${name}`;
+  fs.writeFileSync(file, body);
+  try {
+    await tmuxStrict(["load-buffer", "-b", buffer, file]);
+    await tmuxStrict(["paste-buffer", "-d", "-p", "-b", buffer, "-t", name]);
+  } finally {
+    try { fs.rmSync(file, { force: true }); } catch { /* ignore */ }
+  }
+  return true;
+}
+
+// Put the message in the composer, then press Enter (separate calls, so the
+// text is never parsed as keys).
+//
+// Some TUIs intermittently swallow the Enter that arrives right behind the
+// text, leaving the message unsent — observed with Codex. For those agents we
+// check the pane and press Enter again; an extra Enter on an empty composer is
+// a no-op, so this can't double-send.
 export async function sendTerm(name, text) {
   if (!valid(name)) throw new Error("invalid name");
   const body = String(text);
-  await tmux(["send-keys", "-t", name, "-l", body]);
-  await tmux(["send-keys", "-t", name, "Enter"]);
+  if (!body) return { sent: false, reason: "empty" };
+
+  const pasted = await deliver(name, body);
+  await tmuxStrict(["send-keys", "-t", name, "Enter"]);
 
   let agent = DEFAULT_AGENT;
   try { agent = JSON.parse(fs.readFileSync(metaPath(name), "utf8")).agent || DEFAULT_AGENT; }
   catch { /* pre-agent session */ }
-  if (!getAgent(agent).submitNeedsVerify) return { sent: true };
+  if (!getAgent(agent).submitNeedsVerify) return { sent: true, pasted };
 
   for (let attempt = 0; attempt < 2; attempt++) {
     await sleep(350);
     const pane = await tmux(["capture-pane", "-t", name, "-p"]);
-    if (!stillInComposer(pane, body)) return { sent: true, retries: attempt };
-    await tmux(["send-keys", "-t", name, "Enter"]);
+    // After a paste the composer holds a placeholder, not the text we sent.
+    const unsent = pasted ? PASTE_PLACEHOLDER.test(tail(pane)) : stillInComposer(pane, body);
+    if (!unsent) return { sent: true, pasted, retries: attempt };
+    await tmuxStrict(["send-keys", "-t", name, "Enter"]);
   }
-  return { sent: true, retries: 2 };
+  return { sent: true, pasted, retries: 2 };
+}
+
+function tail(pane) {
+  return pane.split("\n").filter((l) => l.trim()).slice(-3).join("\n");
 }
 
 // Send a special key/chord (Enter, Escape, C-c, Up, Down, "S-Tab", …).

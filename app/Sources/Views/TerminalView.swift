@@ -21,6 +21,7 @@ struct TerminalView: View {
     @State private var attachedPath: String?
     @State private var attachedName: String?
     @State private var uploading = false
+    @State private var pasted: [PastedBlock] = []
     @StateObject private var dictation = SpeechDictation()
     @State private var dictationPrefix = ""
     #if os(iOS)
@@ -236,14 +237,22 @@ struct TerminalView: View {
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(Theme.accentSoft, in: Capsule())
             }
-            HStack(spacing: 10) {
+            ForEach(pasted) { block in
+                PastedBlockChip(block: block) {
+                    pasted.removeAll { $0.id == block.id }
+                }
+            }
+            HStack(alignment: .bottom, spacing: 10) {
                 attachControls
-                TextField("Message \(term.kind.label)…", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...4)
-                    .padding(.horizontal, 14).padding(.vertical, 9)
-                    .background(Theme.assistantBubble, in: Capsule())
-                    .onSubmit(send)
+                MessageComposer(
+                    text: $draft,
+                    placeholder: "Message \(term.kind.label)…",
+                    onSubmit: send,
+                    onLargePaste: { pasted.append(PastedBlock(text: $0)) }
+                )
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(Theme.assistantBubble,
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 Button(action: send) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
@@ -304,7 +313,8 @@ struct TerminalView: View {
     }
 
     private var canSend: Bool {
-        !uploading && !(draft.trimmingCharacters(in: .whitespaces).isEmpty && attachedPath == nil)
+        !uploading && !(draft.trimmingCharacters(in: .whitespaces).isEmpty
+                        && attachedPath == nil && pasted.isEmpty)
     }
 
     private func importFile(_ url: URL) {
@@ -332,8 +342,15 @@ struct TerminalView: View {
         if let path = attachedPath {
             text = base.isEmpty ? "Look at this file: \(path)" : "\(base) \(path)"
         }
+        // Your instruction first, then the pasted material below it — the
+        // daemon sends the whole thing as one bracketed paste, so the agent
+        // receives it as a single message however large it is.
+        if !pasted.isEmpty {
+            let blocks = pasted.map(\.text).joined(separator: "\n\n")
+            text = text.isEmpty ? blocks : "\(text)\n\n\(blocks)"
+        }
         guard !text.isEmpty else { return }
-        draft = ""; attachedPath = nil; attachedName = nil
+        draft = ""; attachedPath = nil; attachedName = nil; pasted = []
         Task {
             try? await app.client.sendTerm(name: term.name, text: text)
             await manager.captureNow(term.name)

@@ -80,6 +80,16 @@ xcodebuild -project ClaudeConsole.xcodeproj -scheme ClaudeConsole -destination '
   fine. `shell()` in `agents.mjs` merges both streams, and `checkAuth` returns
   `known:false` when it recognises neither state — the app then says "could not
   check", never "not signed in".
+- **`send-keys -l` cannot carry a paste.** tmux refuses it past roughly 16KB
+  with "command too long", and every newline in the text arrives as Return,
+  which submits early and shreds a multi-line paste into one message per line.
+  `sendTerm` uses `load-buffer` + `paste-buffer -d -p` for anything over 400
+  chars or containing a newline: measured byte-identical at 2MB in <0.1s, and
+  `-p` (bracketed paste) makes all three TUIs collapse it to one placeholder
+  line — Claude "[Pasted text #1 +39 lines]", Codex "[Pasted Content N chars]",
+  OpenCode "[Pasted ~40 lines]". The old path failed *silently*: `tmux()`
+  swallows errors, so the app was told `{sent:true}` while nothing arrived.
+  Input now goes through `tmuxStrict()`, which throws.
 - **Codex swallows the Enter that follows typed text**, leaving the message
   unsent in its composer — intermittently, not always. `sendTerm` captures the
   pane after sending and presses Enter again if the text is still in the last
@@ -111,6 +121,12 @@ xcodebuild -project ClaudeConsole.xcodeproj -scheme ClaudeConsole -destination '
   in `agents.mjs`), is persisted into the session's metadata at most once a
   minute, and seeds from Claude's transcript mtimes so sessions that predate
   this still sort correctly. Sidebar and project list both order by it.
+- **Don't put large text in a SwiftUI `TextField`.** `axis: .vertical`
+  re-measures the whole string on every change, so pasting a log froze the Mac
+  app. `MessageComposer.swift` wraps a real NSTextView/UITextView (bounded
+  height, scrolls) and intercepts anything ≥700 chars or ≥8 newlines in one
+  edit, holding it as a chip instead of inserting it — the same shape the agent
+  TUIs show on the other end.
 - **Terminal captures are polled centrally** in `SessionManager` (per-view polling
   got stuck on "Starting Claude" when switching); views read the cache.
 - **There is no scrollback to scroll.** Claude's TUI runs in tmux's alternate

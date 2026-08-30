@@ -81,6 +81,9 @@ open ClaudeConsole.xcodeproj
 - **Search everywhere** — projects and running sessions from the sidebar, your
   GitHub repos while typing, branches in the branch picker, and models in the
   model picker (OpenCode with OpenRouter reports 300+, grouped by provider).
+- **Paste anything** — a log or stack trace becomes a compact chip in the
+  composer instead of flooding it, and goes to the agent as a single bracketed
+  paste (tested at 88k characters / 1500 lines).
 - **Scroll the terminal** — swipe on iPhone or use the wheel/trackpad on the
   Mac to page back through an agent's long output, with a "Jump to live" button.
 - **Usage & limits** — real Claude Code `/usage` (session + weekly).
