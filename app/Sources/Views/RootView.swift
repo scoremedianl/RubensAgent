@@ -151,6 +151,16 @@ struct RootView: View {
                 }
             }
             Divider()
+            if let current = app.server {
+                Button {
+                    app.setDefaultServer(current.id)
+                } label: {
+                    Label(app.defaultServerID == current.id
+                          ? "Don't open on \(current.displayName)"
+                          : "Always open on \(current.displayName)",
+                          systemImage: app.defaultServerID == current.id ? "star.slash" : "star")
+                }
+            }
             Button { sheet = .settings } label: { Label("Manage Macs…", systemImage: "gearshape") }
         } label: {
             HStack(spacing: 8) {

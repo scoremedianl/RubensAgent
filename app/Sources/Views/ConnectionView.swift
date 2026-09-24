@@ -30,8 +30,13 @@ struct ConnectionView: View {
                 } header: {
                     Text("Macs")
                 } footer: {
-                    Text("Find a Mac's token with `cat ~/.claude-bridge/token` on that machine.")
-                        .font(.caption)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(app.defaultServerID == nil
+                             ? "The app opens on whichever Mac you used last. Star one to always open on it."
+                             : "The app always opens on the starred Mac.")
+                        Text("Find a Mac's token with `cat ~/.claude-bridge/token` on that machine.")
+                    }
+                    .font(.caption)
                 }
 
                 Section {
@@ -71,6 +76,7 @@ struct ConnectionView: View {
 
     @ViewBuilder private func row(_ server: MacServer) -> some View {
         let isActive = server.id == app.server?.id
+        let isDefault = server.id == app.defaultServerID
         Button {
             switchTo(server)
         } label: {
@@ -82,12 +88,29 @@ struct ConnectionView: View {
                     .background(isActive ? Theme.accentSoft : Color.primary.opacity(0.05),
                                 in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(server.displayName).font(.body.weight(isActive ? .semibold : .regular))
+                    HStack(spacing: 5) {
+                        Text(server.displayName).font(.body.weight(isActive ? .semibold : .regular))
+                        if isDefault {
+                            Text("opens here")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Theme.accentSoft, in: Capsule())
+                        }
+                    }
                     Text("\(server.host):\(server.port)")
                         .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 6)
                 statusIcon(server)
+                Button {
+                    app.setDefaultServer(server.id)
+                } label: {
+                    Image(systemName: isDefault ? "star.fill" : "star")
+                        .foregroundStyle(isDefault ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(isDefault ? "Opens on this Mac — tap to unpin" : "Always open on this Mac")
                 if isActive {
                     Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                 }
@@ -102,6 +125,10 @@ struct ConnectionView: View {
                 .tint(.gray)
         }
         .contextMenu {
+            Button { app.setDefaultServer(server.id) } label: {
+                Label(isDefault ? "Don't open on this Mac" : "Always open on this Mac",
+                      systemImage: isDefault ? "star.slash" : "star")
+            }
             Button { editing = server } label: { Label("Edit", systemImage: "pencil") }
             Button { Task { await test(server) } } label: { Label("Test", systemImage: "bolt") }
             Button(role: .destructive) { app.removeServer(server.id) } label: {

@@ -25,6 +25,7 @@ struct MacServer: Codable, Identifiable, Hashable {
 enum ServerStore {
     private static let listKey = "bridge.servers"
     private static let selectedKey = "bridge.selectedServer"
+    private static let defaultKey = "bridge.defaultServer"
 
     // Pre-multi-Mac keys, still read once to carry the existing setup over.
     private static let legacyHost = "bridge.host"
@@ -62,6 +63,30 @@ enum ServerStore {
 
     static func select(_ id: String) {
         UserDefaults.standard.set(id, forKey: selectedKey)
+    }
+
+    /// The Mac to open on, if one is pinned. Without it the app resumes
+    /// whichever Mac you used last.
+    static var defaultID: String? {
+        get { UserDefaults.standard.string(forKey: defaultKey) }
+        set {
+            if let newValue { UserDefaults.standard.set(newValue, forKey: defaultKey) }
+            else { UserDefaults.standard.removeObject(forKey: defaultKey) }
+        }
+    }
+
+    /// Which Mac to use at launch. Resolved once and written back, so `Bridge`
+    /// — which reads the selection, not the default — agrees from the start.
+    static func resolveStartupSelection() -> String? {
+        let servers = load()
+        guard let first = servers.first else { return nil }
+        if let pinned = defaultID, servers.contains(where: { $0.id == pinned }) {
+            select(pinned)
+            return pinned
+        }
+        if let last = selectedID, servers.contains(where: { $0.id == last }) { return last }
+        select(first.id)
+        return first.id
     }
 
     /// The active Mac: the selected one, or the first if the selection is gone.

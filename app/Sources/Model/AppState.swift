@@ -6,7 +6,9 @@ import SwiftUI
 final class AppState: ObservableObject {
     /// Every Mac you've set up, and which one the app is talking to.
     @Published var servers: [MacServer] = ServerStore.load()
-    @Published var selectedServerID: String? = ServerStore.selectedID
+    @Published var selectedServerID: String? = ServerStore.resolveStartupSelection()
+    /// Pinned Mac to open on; nil means "resume the last one used".
+    @Published var defaultServerID: String? = ServerStore.defaultID
 
     @Published var health: Health?
     @Published var reachable = false
@@ -57,12 +59,20 @@ final class AppState: ObservableObject {
     func removeServer(_ id: String) {
         servers.removeAll { $0.id == id }
         persist()
+        if defaultServerID == id { setDefaultServer(nil) }
         // Don't leave the app pointed at a Mac that no longer exists.
         if selectedServerID == id { selectedServerID = servers.first?.id }
         if let id = selectedServerID { ServerStore.select(id) }
     }
 
     private func persist() { ServerStore.save(servers) }
+
+    /// Pin the Mac the app opens on. Passing the Mac that's already pinned
+    /// clears it, so the app goes back to resuming the last one used.
+    func setDefaultServer(_ id: String?) {
+        defaultServerID = (id == defaultServerID) ? nil : id
+        ServerStore.defaultID = defaultServerID
+    }
 
     /// Point the app at another Mac. Everything on screen belongs to the old
     /// one — sessions, projects, stats — so it all has to go.

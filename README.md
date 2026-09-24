@@ -79,7 +79,8 @@ open ClaudeConsole.xcodeproj
   Fable 5); OpenCode reports its own list, searchable and grouped by provider;
   Codex switches model in its TUI. Each model is tinted by family.
 - **Multiple Macs** — keep several bridge Macs in the app and switch between
-  them from the sidebar; each keeps its own host, port and token.
+  them from the sidebar; each keeps its own host, port and token. Star one to
+  always open on it, or leave it and the app resumes the Mac you used last.
 - **Search everywhere** — projects and running sessions from the sidebar, your
   GitHub repos while typing, branches in the branch picker, and models in the
   model picker (OpenCode with OpenRouter reports 300+, grouped by provider).
