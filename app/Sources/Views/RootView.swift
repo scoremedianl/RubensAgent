@@ -42,6 +42,14 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $manager.selection) {
+                if trimmedQuery.isEmpty && app.servers.count > 1 {
+                    Section {
+                        serverSwitcher
+                            .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 0, trailing: 8))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                }
                 if trimmedQuery.isEmpty {
                     Section {
                         SystemWidget(system: app.system) { sheet = .system }
@@ -128,6 +136,56 @@ struct RootView: View {
         }
     }
 
+    // Which Mac the app is driving, and a one-tap switch to the other.
+    private var serverSwitcher: some View {
+        Menu {
+            ForEach(app.servers) { server in
+                Button {
+                    switchTo(server)
+                } label: {
+                    if server.id == app.server?.id {
+                        Label(server.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(server.displayName)
+                    }
+                }
+            }
+            Divider()
+            Button { sheet = .settings } label: { Label("Manage Macs…", systemImage: "gearshape") }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "desktopcomputer")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                Text(app.server?.displayName ?? "No Mac")
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                Circle()
+                    .fill(app.reachable ? .green : .secondary)
+                    .frame(width: 6, height: 6)
+                Spacer(minLength: 2)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(Color.primary.opacity(0.05),
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+    }
+
+    private func switchTo(_ server: MacServer) {
+        guard server.id != app.server?.id else { return }
+        // Clear the old Mac's sessions before anything re-polls: terminal names
+        // are only unique per machine.
+        manager.resetForServerSwitch()
+        app.select(server.id)
+        query = ""
+        Task { await refresh() }
+    }
+
     private func sectionHeader(_ title: String, _ count: Int, working: Int) -> some View {
         HStack(spacing: 6) {
             Text(title)
@@ -190,7 +248,7 @@ struct RootView: View {
             // force: logging an agent in on the Mac must show up when you
             // press refresh, not up to five minutes later.
             await app.loadAgents(force: true)
-        } else if app.token.isEmpty {
+        } else if !app.isConfigured {
             sheet = .settings
         }
     }

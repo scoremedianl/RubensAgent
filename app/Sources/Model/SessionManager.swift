@@ -32,6 +32,19 @@ final class SessionManager: ObservableObject {
     @Published var loadedTerms: Set<String> = []
     private var pollTask: Task<Void, Never>?
 
+    /// Drop everything belonging to the Mac we were talking to. Terminal names
+    /// are only unique per machine, so carrying any of this across a switch
+    /// would show the wrong session — or poll a name that doesn't exist there.
+    func resetForServerSwitch() {
+        pollTask?.cancel(); pollTask = nil
+        for entry in entries { entry.socket.stop() }
+        entries = []
+        terminals = []
+        captures = [:]
+        loadedTerms = []
+        selection = nil
+    }
+
     func startPolling() {
         guard pollTask == nil else { return }
         pollTask = Task { [weak self] in

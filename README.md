@@ -78,6 +78,8 @@ open ClaudeConsole.xcodeproj
 - **Model picker** — Claude's presets (Opus 5, Opus 4.8, Sonnet 5, Haiku 4.5,
   Fable 5); OpenCode reports its own list, searchable and grouped by provider;
   Codex switches model in its TUI. Each model is tinted by family.
+- **Multiple Macs** — keep several bridge Macs in the app and switch between
+  them from the sidebar; each keeps its own host, port and token.
 - **Search everywhere** — projects and running sessions from the sidebar, your
   GitHub repos while typing, branches in the branch picker, and models in the
   model picker (OpenCode with OpenRouter reports 300+, grouped by provider).

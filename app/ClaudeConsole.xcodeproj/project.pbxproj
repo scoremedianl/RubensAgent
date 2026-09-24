@@ -37,10 +37,12 @@
 		F14D77BD41C6175C6A6116D1 /* ClaudeConsoleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CBDAE858B6901E2CF3F186 /* ClaudeConsoleApp.swift */; };
 		F38847A3CD79EB5321D5A19B /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523CBE60D1E1FA8E39865FD0 /* ProjectDetailView.swift */; };
 		F75AE14C34CD6936A01E0E29 /* SessionSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD38CE6239B5FF02B2BCDF7 /* SessionSocket.swift */; };
+		FAC70C5F4A2CB91F9ECFBC26 /* MacServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E914F40B4A545F10A5A2DC /* MacServer.swift */; };
 		FFAAC8737E7999BE16732C3C /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B867895D1703E72DFB9F33EE /* SessionManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		03E914F40B4A545F10A5A2DC /* MacServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacServer.swift; sourceTree = "<group>"; };
 		16559A61793FDD0EE5B115BA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1B1682D8C223C0F3EE31A4DE /* MessageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposer.swift; sourceTree = "<group>"; };
 		1B6513F4B61E5470A1BFF1EC /* RunsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunsView.swift; sourceTree = "<group>"; };
@@ -139,6 +141,7 @@
 				50D0EF43220B167E68425E4A /* AppState.swift */,
 				CF3DAD88483402F97003B14D /* Bridge.swift */,
 				1E69458B9BDB6410954D5955 /* BridgeClient.swift */,
+				03E914F40B4A545F10A5A2DC /* MacServer.swift */,
 				E7FA671116EBC0A709E6EE00 /* Models.swift */,
 				2B47BA08DDE299A84910E7A1 /* Options.swift */,
 				B867895D1703E72DFB9F33EE /* SessionManager.swift */,
@@ -229,6 +232,7 @@
 				C19828EF51A1FF25899905A5 /* ConnectionView.swift in Sources */,
 				53AEA3932961282D86EE6A98 /* FileBrowserView.swift in Sources */,
 				E64E179852F0CD278DDD5679 /* LoopsView.swift in Sources */,
+				FAC70C5F4A2CB91F9ECFBC26 /* MacServer.swift in Sources */,
 				A110A0395A5D5548855B66F8 /* MemoryView.swift in Sources */,
 				1DF0646DF726E28DB6CE28AE /* MessageComposer.swift in Sources */,
 				BC5388E94C879CB8D54DDE80 /* ModelPickerView.swift in Sources */,
